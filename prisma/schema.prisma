@@ -1,0 +1,363 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  SALES_ANALYST
+  PRODUCTION_PLANNER
+  INVENTORY_MANAGER
+  PROCUREMENT_OFFICER
+  FINANCE_MANAGER
+  EXECUTIVE
+}
+
+enum WorkflowType {
+  DEMAND_TO_PLAN
+  PLAN_TO_PRODUCE
+  PROCURE_TO_PAY
+}
+
+enum WorkflowState {
+  INITIATED
+  FORECASTING
+  PENDING_FORECAST_APPROVAL
+  PLANNING
+  PENDING_PRODUCTION_AUTH
+  PROCUREMENT
+  PENDING_PO_APPROVAL
+  FINANCE_REVIEW
+  EXECUTING
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+enum ApprovalGateType {
+  FORECAST_APPROVAL
+  PRODUCTION_AUTHORIZATION
+  PO_APPROVAL
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ModelType {
+  LINEAR_REGRESSION
+  RANDOM_FOREST
+  XGBOOST
+  ARIMA
+}
+
+enum ForecastStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum ProductionPlanStatus {
+  DRAFT
+  PENDING_AUTHORIZATION
+  AUTHORIZED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum POStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ORDERED
+  DELIVERED
+  REJECTED
+}
+
+// ─────────────────────────────────────────────
+// User & RBAC
+// ─────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  role         Role
+  department   String?
+  passwordHash String?
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+}
+
+// NextAuth.js compatible Session model
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NextAuth.js Account model (for OAuth providers)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  @@unique([provider, providerAccountId])
+}
+
+// NextAuth.js VerificationToken model
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────────
+// Orchestrator
+// ─────────────────────────────────────────────
+
+model WorkflowRun {
+  id          String          @id @default(cuid())
+  type        WorkflowType
+  state       WorkflowState
+  payload     Json
+  triggeredBy String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  events      WorkflowEvent[]
+  approvals   ApprovalGate[]
+}
+
+model WorkflowEvent {
+  id            String      @id @default(cuid())
+  workflowRunId String
+  eventType     String
+  fromState     String
+  toState       String
+  metadata      Json?
+  occurredAt    DateTime    @default(now())
+  workflowRun   WorkflowRun @relation(fields: [workflowRunId], references: [id])
+
+  @@index([workflowRunId])
+}
+
+model ApprovalGate {
+  id            String           @id @default(cuid())
+  workflowRunId String
+  gateType      ApprovalGateType
+  requiredRole  Role
+  status        ApprovalStatus   @default(PENDING)
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  workflowRun   WorkflowRun      @relation(fields: [workflowRunId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// Sales Intelligence
+// ─────────────────────────────────────────────
+
+model SalesRecord {
+  id        String   @id @default(cuid())
+  date      DateTime
+  productId String
+  region    String
+  quantity  Float
+  revenue   Float
+  source    String
+}
+
+model TrainedModel {
+  id           String    @id @default(cuid())
+  modelType    ModelType
+  trainedAt    DateTime  @default(now())
+  mae          Float
+  rmse         Float
+  r2Score      Float
+  artifactPath String
+  isActive     Boolean   @default(false)
+}
+
+model ForecastResult {
+  id          String         @id @default(cuid())
+  modelId     String
+  generatedAt DateTime       @default(now())
+  horizon     Int
+  predictions Json
+  status      ForecastStatus @default(DRAFT)
+  approvedBy  String?
+  approvedAt  DateTime?
+}
+
+// ─────────────────────────────────────────────
+// Production Planning
+// ─────────────────────────────────────────────
+
+model Product {
+  id       String    @id @default(cuid())
+  sku      String    @unique
+  name     String
+  bomItems BOMItem[]
+}
+
+model BOMItem {
+  id         String   @id @default(cuid())
+  productId  String
+  materialId String
+  quantity   Float
+  unit       String
+  product    Product  @relation(fields: [productId], references: [id])
+  material   Material @relation(fields: [materialId], references: [id])
+}
+
+model ProductionPlan {
+  id           String               @id @default(cuid())
+  forecastId   String
+  createdAt    DateTime             @default(now())
+  status       ProductionPlanStatus
+  authorizedBy String?
+  orders       ProductionOrder[]
+}
+
+model ProductionOrder {
+  id             String         @id @default(cuid())
+  planId         String
+  productId      String
+  requiredQty    Float
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  status         OrderStatus
+  plan           ProductionPlan @relation(fields: [planId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// Inventory
+// ─────────────────────────────────────────────
+
+model Material {
+  id           String        @id @default(cuid())
+  sku          String        @unique
+  name         String
+  unit         String
+  onHand       Float         @default(0)
+  safetyStock  Float         @default(0)
+  reorderPoint Float         @default(0)
+  bomItems     BOMItem[]
+  stockLedger  StockLedger[]
+}
+
+model StockLedger {
+  id         String   @id @default(cuid())
+  materialId String
+  delta      Float
+  reason     String
+  reference  String?
+  occurredAt DateTime @default(now())
+  material   Material @relation(fields: [materialId], references: [id])
+
+  @@index([materialId])
+}
+
+model FinishedGood {
+  id        String   @id @default(cuid())
+  productId String
+  quantity  Float
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// Procurement & Finance
+// ─────────────────────────────────────────────
+
+model Supplier {
+  id             String             @id @default(cuid())
+  name           String
+  leadTimeDays   Int
+  materials      SupplierMaterial[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model SupplierMaterial {
+  supplierId String
+  materialId String
+  unitCost   Float
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  @@id([supplierId, materialId])
+}
+
+model PurchaseOrder {
+  id          String    @id @default(cuid())
+  supplierId  String
+  materialId  String
+  quantity    Float
+  unitCost    Float
+  totalCost   Float
+  status      POStatus  @default(DRAFT)
+  createdAt   DateTime  @default(now())
+  approvedBy  String?
+  approvedAt  DateTime?
+  deliveredAt DateTime?
+  supplier    Supplier  @relation(fields: [supplierId], references: [id])
+}
+
+model Budget {
+  id          String @id @default(cuid())
+  costCenter  String @unique
+  totalBudget Float
+  committed   Float  @default(0)
+  spent       Float  @default(0)
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  costCenter  String
+  amount      Float
+  description String
+  reference   String?
+  recordedAt  DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────
+// HR
+// ─────────────────────────────────────────────
+
+model Employee {
+  id         String  @id @default(cuid())
+  name       String
+  email      String  @unique
+  department String
+  role       String
+  userId     String? @unique
+}
