@@ -118,7 +118,6 @@ export class SalesIntelligenceService {
     const modelDir = path.join(this.artifactDir, modelId);
     if (!fs.existsSync(modelDir)) fs.mkdirSync(modelDir, { recursive: true });
     
-    const artifactPath = path.join(modelDir, 'model.json');
     await model.save(`file://${modelDir}`);
 
     // Save normalization metadata
@@ -127,13 +126,15 @@ export class SalesIntelligenceService {
 
     const trainedModel = await prisma.trainedModel.create({
       data: {
+        productId: config.productId,
+        region: config.region,
         modelType: config.type,
         mae,
         rmse,
         r2Score,
-        artifactPath: modelDir, // Store directory path
+        artifactPath: modelDir,
         isActive: true,
-      }
+      } as any // eslint-disable-line @typescript-eslint/no-explicit-any
     });
 
     // Cleanup TF tensors
@@ -179,10 +180,12 @@ export class SalesIntelligenceService {
     const forecast = await prisma.forecastResult.create({
       data: {
         modelId,
+        productId: (modelRecord as unknown as { productId: string }).productId,
+        region: (modelRecord as unknown as { region: string }).region,
         horizon,
         predictions: predictionValues,
         status: ForecastStatus.DRAFT,
-      }
+      } as any // eslint-disable-line @typescript-eslint/no-explicit-any
     });
 
     xs.dispose();

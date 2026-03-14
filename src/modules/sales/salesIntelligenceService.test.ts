@@ -42,7 +42,7 @@ vi.mock('@tensorflow/tfjs-node', () => {
       add: vi.fn(),
       compile: vi.fn(),
       fit: vi.fn().mockResolvedValue({}),
-      predict: vi.fn((xs) => {
+      predict: vi.fn(() => {
         // Mock prediction values to match input length if possible
         return {
           data: vi.fn().mockResolvedValue(new Float32Array(new Array(10).fill(10))), 

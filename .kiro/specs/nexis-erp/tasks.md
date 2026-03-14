@@ -22,7 +22,7 @@ Incremental implementation starting with project scaffolding and shared infrastr
   - Run `prisma migrate dev --name init` to generate and apply migration
   - _Requirements: 3.1, 8.1, 8.2_
 
-- [ ] 3. Seed script
+- [x] 3. Seed script
   - [x] 3.1 Implement CSV loader for Superstore and Walmart sales data
     - Write `prisma/seed.ts` that reads CSV files and upserts SalesRecord rows using a unique key (date + productId + region + source) for idempotency
     - _Requirements: 14.1, 14.3_
@@ -35,7 +35,7 @@ Incremental implementation starting with project scaffolding and shared infrastr
     - **Validates: Requirements 14.3**
 
 
-- [ ] 4. Authentication and RBAC
+- [x] 4. Authentication and RBAC
   - [x] 4.1 Configure NextAuth.js with credentials provider
     - Create `src/app/api/auth/[...nextauth]/route.ts` using NextAuth credentials provider
     - Implement `authorize` callback that validates email/password against User records and returns `{ id, email, role }`
@@ -149,45 +149,45 @@ Incremental implementation starting with project scaffolding and shared infrastr
     - _Requirements: 5.1, 6.1, 6.3_
 
 
-- [ ] 9. Production Planning Module
-  - [ ] 9.1 Implement MRP and BOM explosion
+- [x] 9. Production Planning Module
+  - [x] 9.1 Implement MRP and BOM explosion
     - Create `src/modules/production/productionPlanningService.ts`
     - Implement `runMRP(forecastId)`: load approved ForecastResult, for each product fetch BOMItems, multiply forecast quantity × BOM quantity per unit to derive material requirements
     - Persist ProductionPlan (status `DRAFT`) and ProductionOrder records linked to the plan
     - _Requirements: 7.1, 7.2, 7.3_
-  - [ ] 9.2 Write property test for MRP material requirement calculation
+  - [x] 9.2 Write property test for MRP material requirement calculation
     - **Property 17: MRP material requirement equals forecast quantity times BOM quantity**
     - **Validates: Requirements 7.1, 7.2**
-  - [ ] 9.3 Implement plan authorization and readiness report
+  - [x] 9.3 Implement plan authorization and readiness report
     - Implement `checkProductionReadiness(planId)`: return ReadinessReport indicating material availability
     - Implement `authorizePlan(planId, authorizedBy)`: set ProductionPlan status to `AUTHORIZED`, record `authorizedBy`
     - _Requirements: 7.4, 7.5_
-  - [ ] 9.4 Implement Production Planning API routes
+  - [x] 9.4 Implement Production Planning API routes
     - `POST /api/production/mrp` — PRODUCTION_PLANNER only
     - `GET /api/production/plan/[id]/readiness` — PRODUCTION_PLANNER only
     - `POST /api/production/plan/[id]/authorize` — PRODUCTION_PLANNER only
     - _Requirements: 7.1, 7.4, 7.5_
 
-- [ ] 10. Inventory Management Module
-  - [ ] 10.1 Implement stock ledger and on-hand calculation
+- [x] 10. Inventory Management Module
+  - [x] 10.1 Implement stock ledger and on-hand calculation
     - Create `src/modules/inventory/inventoryService.ts`
     - Implement `updateStock(itemId, delta, reason)`: append StockLedger entry; never overwrite on-hand directly
     - Implement `getStockLevel(itemId)`: derive on-hand as `SUM(delta)` from StockLedger for that material
     - _Requirements: 8.1, 8.2_
-  - [ ] 10.2 Write property test for stock on-hand ledger sum
+  - [x] 10.2 Write property test for stock on-hand ledger sum
     - **Property 18: Stock on-hand equals sum of all ledger deltas**
     - **Validates: Requirements 8.1, 8.2**
-  - [ ] 10.3 Implement shortage detection and safety stock alerts
+  - [x] 10.3 Implement shortage detection and safety stock alerts
     - Implement `detectShortages(planId)`: compare MRP requirements against on-hand; return ShortageReport with all deficit materials
     - Implement `getSafetyStockAlerts()`: return all materials where `onHand < safetyStock`
     - _Requirements: 8.3, 8.4_
-  - [ ] 10.4 Write property test for shortage report completeness
+  - [x] 10.4 Write property test for shortage report completeness
     - **Property 19: Shortage report is complete and sound**
     - **Validates: Requirements 8.3**
-  - [ ] 10.5 Write property test for safety stock alert completeness
+  - [x] 10.5 Write property test for safety stock alert completeness
     - **Property 20: Safety stock alerts are complete and sound**
     - **Validates: Requirements 8.4**
-  - [ ] 10.6 Implement finished goods recording and API routes
+  - [x] 10.6 Implement finished goods recording and API routes
     - Implement `recordFinishedGoods(productId, quantity)`: upsert FinishedGood record
     - `GET /api/inventory/stock/[itemId]` — INVENTORY_MANAGER only
     - `POST /api/inventory/stock/[itemId]` — INVENTORY_MANAGER only
@@ -195,7 +195,7 @@ Incremental implementation starting with project scaffolding and shared infrastr
     - `GET /api/inventory/alerts` — INVENTORY_MANAGER only
     - _Requirements: 8.3, 8.4, 8.5_
 
-- [ ] 11. Checkpoint — Ensure production and inventory tests pass, ask the user if questions arise.
+- [x] 11. Checkpoint — Ensure production and inventory tests pass, ask the user if questions arise.
 
 
 - [ ] 12. Supplier & Procurement Module

@@ -61,7 +61,9 @@ interface SeedStore {
 }
 
 function salesRecordId(date: string, productId: string, region: string, source: string): string {
-  return `sr_${date}_${productId}_${region}_${source}`.replace(/[^a-zA-Z0-9_-]/g, '_')
+  // Use a predictable separator and escape values to avoid collisions between parts
+  const normalize = (s: string) => String(s).replace(/\|/g, '\\|');
+  return `sr|${normalize(date)}|${normalize(productId)}|${normalize(region)}|${normalize(source)}`;
 }
 
 const SAMPLE_SALES_ROWS = [

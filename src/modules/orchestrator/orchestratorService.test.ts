@@ -1,5 +1,4 @@
 import { test, expect, vi, describe, beforeEach } from 'vitest';
-import fc from 'fast-check';
 import { WorkflowState, WorkflowType, Role, ApprovalGateType, ApprovalStatus } from '@prisma/client';
 import { OrchestratorService } from './orchestratorService';
 

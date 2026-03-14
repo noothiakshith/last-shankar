@@ -200,6 +200,8 @@ model SalesRecord {
 
 model TrainedModel {
   id           String    @id @default(cuid())
+  productId    String
+  region       String
   modelType    ModelType
   trainedAt    DateTime  @default(now())
   mae          Float
@@ -212,6 +214,8 @@ model TrainedModel {
 model ForecastResult {
   id          String         @id @default(cuid())
   modelId     String
+  productId   String
+  region      String
   generatedAt DateTime       @default(now())
   horizon     Int
   predictions Json

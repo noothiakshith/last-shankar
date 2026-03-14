@@ -73,7 +73,7 @@ describe('Property 1: JWT contains correct identity claims', () => {
           const email = `user-${userId}@example.com`
           const hash = await bcrypt.hash(password, 1) // cost=1 for speed
 
-          const findUser = async (_email: string) => ({
+          const findUser = async () => ({
             id: userId,
             email,
             role,
@@ -109,7 +109,7 @@ describe('Property 2: Invalid credentials always rejected', () => {
         fc.emailAddress(),
         fc.string({ minLength: 1, maxLength: 50 }),
         async (email, password) => {
-          const findUser = async (_email: string) => null
+          const findUser = async () => null
 
           const token = await authorizeCredentials(email, password, findUser, bcrypt.compare)
           expect(token).toBeNull()
@@ -129,7 +129,7 @@ describe('Property 2: Invalid credentials always rejected', () => {
           fc.pre(correctPassword !== wrongPassword)
 
           const hash = await bcrypt.hash(correctPassword, 1)
-          const findUser = async (_email: string) => ({
+          const findUser = async () => ({
             id: 'user-abc',
             email: 'user@example.com',
             role,
@@ -155,7 +155,7 @@ describe('Property 2: Invalid credentials always rejected', () => {
         arbRole,
         fc.string({ minLength: 1, maxLength: 30 }),
         async (role, password) => {
-          const findUser = async (_email: string) => ({
+          const findUser = async () => ({
             id: 'user-abc',
             email: 'user@example.com',
             role,
