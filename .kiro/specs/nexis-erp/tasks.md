@@ -109,38 +109,38 @@ Incremental implementation starting with project scaffolding and shared infrastr
     - `POST /api/orchestrator/approve` — validates role, calls `resolveApproval`
     - _Requirements: 3.1, 3.4, 4.2_
 
-- [ ] 7. Checkpoint — Ensure orchestrator tests pass, ask the user if questions arise.
+- [x] 7. Checkpoint — Ensure orchestrator tests pass, ask the user if questions arise.
 
 
-- [ ] 8. Sales Intelligence Module
-  - [ ] 8.1 Implement TensorFlow.js model training
+- [x] 8. Sales Intelligence Module
+  - [x] 8.1 Implement TensorFlow.js model training
     - Create `src/modules/sales/salesIntelligenceService.ts`
     - Implement `trainModel(config)`: load SalesRecord data from DB, build and train TF.js model for LINEAR_REGRESSION, RANDOM_FOREST, XGBOOST, ARIMA types
     - Compute MAE, RMSE, R² after training; persist TrainedModel record with `artifactPath`
     - On training failure (NaN loss, insufficient data) throw descriptive error so Orchestrator sets state to FAILED
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
-  - [ ] 8.2 Write property test for trained model metrics validity
+  - [x] 8.2 Write property test for trained model metrics validity
     - **Property 13: Trained model metrics are valid numbers**
     - **Validates: Requirements 5.3**
-  - [ ] 8.3 Implement leaderboard and forecast generation
+  - [x] 8.3 Implement leaderboard and forecast generation
     - Implement `getLeaderboard()`: query all TrainedModel records, sort ascending by MAE
     - Implement `runForecast(modelId, horizon)`: load model artifact, generate predictions for H days, persist ForecastResult with status `DRAFT`
     - _Requirements: 5.5, 6.1, 6.2_
-  - [ ] 8.4 Write property test for leaderboard ordering
+  - [x] 8.4 Write property test for leaderboard ordering
     - **Property 14: Leaderboard order is consistent with metrics**
     - **Validates: Requirements 5.5**
-  - [ ] 8.5 Write property test for forecast horizon coverage
+  - [x] 8.5 Write property test for forecast horizon coverage
     - **Property 15: Forecast horizon matches requested days**
     - **Validates: Requirements 6.1**
-  - [ ] 8.6 Implement forecast approval flow and actuals recording
+  - [x] 8.6 Implement forecast approval flow and actuals recording
     - Implement `submitForecastForApproval(forecastId)`: set ForecastResult status to `PENDING_APPROVAL`, call `orchestrator.requestApproval` for FORECAST_APPROVAL gate
     - On gate APPROVED: set status to `APPROVED`, record `approvedBy`/`approvedAt`
     - Implement `recordActuals(period, actuals)`: persist SalesActual records for MLOps retraining loop
     - _Requirements: 6.3, 6.4, 6.5_
-  - [ ] 8.7 Write property test for forecast status lifecycle monotonicity
+  - [x] 8.7 Write property test for forecast status lifecycle monotonicity
     - **Property 16: Forecast status lifecycle is monotonic**
     - **Validates: Requirements 6.2, 6.3, 6.4**
-  - [ ] 8.8 Implement Sales Intelligence API routes
+  - [x] 8.8 Implement Sales Intelligence API routes
     - `POST /api/sales/train` — SALES_ANALYST only
     - `POST /api/sales/forecast` — SALES_ANALYST only
     - `GET /api/sales/leaderboard` — SALES_ANALYST, EXECUTIVE
