@@ -8,6 +8,31 @@ export type AuthToken = JWT & {
   role: Role;
 };
 
+type UserWithHash = { id: string; email: string; role: Role; passwordHash: string | null };
+type FindUser = () => Promise<UserWithHash | null>;
+type CompareFn = (plain: string, hash: string) => Promise<boolean>;
+
+/**
+ * Validates credentials and returns a token payload or null.
+ * Used by auth property tests and can support credential-based flows.
+ */
+export async function authorizeCredentials(
+  email: string,
+  password: string,
+  findUser: FindUser,
+  compare: CompareFn
+): Promise<AuthToken | null> {
+  const user = await findUser();
+  if (!user || !user.passwordHash) return null;
+  const valid = await compare(password, user.passwordHash);
+  if (!valid) return null;
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  };
+}
+
 export function checkAuth(token: any, allowedRoles?: Role[]): { ok: true } | { ok: false; status: number; error: string } {
   if (!token) {
     return { ok: false, status: 401, error: 'Unauthorized' };
@@ -18,10 +43,16 @@ export function checkAuth(token: any, allowedRoles?: Role[]): { ok: true } | { o
     return { ok: false, status: 401, error: 'Unauthorized' };
   }
 
-  if (allowedRoles && allowedRoles.length > 0) {
-    const userRole = token.role as Role;
-    if (!allowedRoles.includes(userRole) && userRole !== Role.ADMIN) {
-      return { ok: false, status: 403, error: 'Forbidden' };
+  const userRole = token.role as Role;
+  if (allowedRoles !== undefined && allowedRoles !== null) {
+    if (allowedRoles.length === 0) {
+      if (userRole !== Role.ADMIN) {
+        return { ok: false, status: 403, error: 'Forbidden' };
+      }
+    } else {
+      if (!allowedRoles.includes(userRole) && userRole !== Role.ADMIN) {
+        return { ok: false, status: 403, error: 'Forbidden' };
+      }
     }
   }
 

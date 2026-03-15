@@ -151,8 +151,12 @@ export async function dispatchDemandToPlan(runId: string) {
           const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
           if (po && po.status !== 'DELIVERED') {
             allDelivered = false;
+            // Only move to ORDERED if still in APPROVED to avoid overwriting concurrent DELIVERED status
             if (po.status === 'APPROVED') {
-              await prisma.purchaseOrder.update({ where: { id: poId }, data: { status: 'ORDERED' } });
+              await prisma.purchaseOrder.updateMany({
+                where: { id: poId, status: 'APPROVED' },
+                data: { status: 'ORDERED' }
+              });
             }
           }
         }
@@ -182,7 +186,10 @@ export async function dispatchDemandToPlan(runId: string) {
           data: { status: 'COMPLETED' }
         });
 
-        await orchestratorService.advanceState(run.id, 'COMPLETE');
+        const current = await prisma.workflowRun.findUnique({ where: { id: run.id } });
+        if (current?.state === WorkflowState.EXECUTING) {
+          await orchestratorService.advanceState(run.id, 'COMPLETE');
+        }
         break;
       }
 
