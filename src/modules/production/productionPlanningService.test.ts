@@ -4,6 +4,12 @@ import { productionPlanningService } from './productionPlanningService';
 import prisma from '@/lib/prisma';
 import { ProductionPlanStatus, OrderStatus, ForecastStatus } from '@prisma/client';
 
+vi.mock('@/modules/inventory/inventoryService', () => ({
+  inventoryService: {
+    getStockLevel: vi.fn()
+  }
+}));
+
 vi.mock('@/lib/prisma', () => ({
   default: {
     forecastResult: {
@@ -240,7 +246,10 @@ describe('ProductionPlanningService', () => {
 
       vi.mocked(prisma.productionPlan.findUnique).mockResolvedValue(mockPlan as any);
       vi.mocked(prisma.bOMItem.findMany).mockResolvedValue(mockBOMItems as any);
-      vi.mocked(prisma.material.findUnique).mockResolvedValue(mockMaterial);
+      const inventoryServiceModule = await import('@/modules/inventory/inventoryService');
+      vi.mocked(inventoryServiceModule.inventoryService.getStockLevel).mockResolvedValue({
+        materialId: 'material-1', onHand: 1000, safetyStock: 100, reorderPoint: 200
+      });
 
       const result = await productionPlanningService.checkProductionReadiness('plan-1');
 
@@ -315,7 +324,10 @@ describe('ProductionPlanningService', () => {
 
       vi.mocked(prisma.productionPlan.findUnique).mockResolvedValue(mockPlan as any);
       vi.mocked(prisma.bOMItem.findMany).mockResolvedValue(mockBOMItems as any);
-      vi.mocked(prisma.material.findUnique).mockResolvedValue(mockMaterial);
+      const inventoryServiceModule = await import('@/modules/inventory/inventoryService');
+      vi.mocked(inventoryServiceModule.inventoryService.getStockLevel).mockResolvedValue({
+        materialId: 'material-1', onHand: 50, safetyStock: 100, reorderPoint: 200
+      });
 
       const result = await productionPlanningService.checkProductionReadiness('plan-1');
 
@@ -348,7 +360,7 @@ describe('ProductionPlanningService', () => {
       } as any);
 
       await expect(productionPlanningService.authorizePlan('plan-1', 'user-2'))
-        .rejects.toThrow('Production plan plan-1 is not in DRAFT status');
+        .rejects.toThrow('Production plan plan-1 is not in DRAFT or PENDING_AUTHORIZATION status');
     });
 
     it('should authorize plan and record authorizedBy', async () => {

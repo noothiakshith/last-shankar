@@ -121,7 +121,7 @@ export class SalesIntelligenceService {
     await model.save(`file://${modelDir}`);
 
     // Save normalization metadata
-    const metadata = { xMean, xStd, yMean, yStd, modelType: config.type };
+    const metadata = { xMean, xStd, yMean, yStd, modelType: config.type, lastTimeIndex: xValues.length - 1 };
     fs.writeFileSync(path.join(modelDir, 'metadata.json'), JSON.stringify(metadata));
 
     const trainedModel = await prisma.trainedModel.create({
@@ -158,9 +158,9 @@ export class SalesIntelligenceService {
     
     // Load metadata
     const metadata = JSON.parse(fs.readFileSync(path.join(modelDir, 'metadata.json'), 'utf-8'));
-    const { xMean, xStd, yMean, yStd } = metadata;
+    const { xMean, xStd, yMean, yStd, lastTimeIndex: metaLastTimeIndex } = metadata;
 
-    const lastTimeIndex = 100; // Simplified for demo
+    const lastTimeIndex = metaLastTimeIndex !== undefined ? metaLastTimeIndex : 100; // Real bounds instead of hardcoded
     const futureX = Array.from({ length: horizon }, (_, i) => lastTimeIndex + i + 1);
     const xNormalized = futureX.map(v => (v - xMean) / xStd);
     const xs = tf.tensor2d(xNormalized, [xNormalized.length, 1]);

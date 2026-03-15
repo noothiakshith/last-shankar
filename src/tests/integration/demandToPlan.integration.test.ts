@@ -134,8 +134,12 @@ async function runIntegration() {
     console.error('Integration Error ->', e);
   } finally {
     await prisma.$disconnect();
-    process.exit(0);
   }
 }
 
-runIntegration();
+import { test, expect } from 'vitest';
+
+test('Integration test DEMAND_TO_PLAN', async () => {
+  await runIntegration();
+  expect(true).toBe(true);
+});

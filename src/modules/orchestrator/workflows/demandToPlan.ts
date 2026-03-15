@@ -4,7 +4,7 @@ import { salesIntelligenceService as salesService } from '@/modules/sales/salesI
 import { productionPlanningService } from '@/modules/production/productionPlanningService';
 import { inventoryService } from '@/modules/inventory/inventoryService';
 import { procurementService } from '@/modules/procurement/procurementService';
-import { validateBudget } from '@/modules/finance/financeService';
+import { validateBudget, approvePO, rejectPO } from '@/modules/finance/financeService';
 import { WorkflowState, ApprovalGateType, Role, ProductionPlanStatus } from '@prisma/client';
 
 export async function dispatchDemandToPlan(runId: string) {
@@ -64,6 +64,7 @@ export async function dispatchDemandToPlan(runId: string) {
           await orchestratorService.advanceState(run.id, 'START_PROCUREMENT');
           
           let totalCost = 0;
+          const poIds: string[] = [];
 
           for (const shortage of shortageReport.shortages) {
             const suppliers = await procurementService.findSuppliers(shortage.materialId);
@@ -79,11 +80,13 @@ export async function dispatchDemandToPlan(runId: string) {
               unitCost: bestSupplier.unitCost
             });
             await procurementService.submitPOForApproval(po.id);
+            poIds.push(po.id);
 
             totalCost += amount * bestSupplier.unitCost;
           }
 
           payload.totalPlannedCost = totalCost;
+          payload.poIds = poIds;
           await prisma.workflowRun.update({
             where: { id: run.id },
             data: { payload: payload as unknown as any }
@@ -106,8 +109,12 @@ export async function dispatchDemandToPlan(runId: string) {
       case WorkflowState.FINANCE_REVIEW: {
         const totalPlannedCost = (payload.totalPlannedCost as number) || 0;
         const budgetAllowed = await validateBudget(totalPlannedCost as number, 'PROCUREMENT');
+        const poIds = (payload.poIds as string[]) || [];
         
         if (budgetAllowed) {
+          for (const poId of poIds) {
+            await approvePO(poId, run.triggeredBy);
+          }
           await prisma.productionPlan.update({
             where: { id: payload.planId as string },
             data: { status: ProductionPlanStatus.PENDING_AUTHORIZATION }
@@ -115,6 +122,9 @@ export async function dispatchDemandToPlan(runId: string) {
           await orchestratorService.advanceState(run.id, 'APPROVE_FINANCE');
           await orchestratorService.requestApproval(run.id, ApprovalGateType.PRODUCTION_AUTHORIZATION, Role.PRODUCTION_PLANNER);
         } else {
+          for (const poId of poIds) {
+            await rejectPO(poId, run.triggeredBy);
+          }
           await orchestratorService.advanceState(run.id, 'REJECT_FINANCE');
         }
         break;
@@ -123,6 +133,14 @@ export async function dispatchDemandToPlan(runId: string) {
       case WorkflowState.EXECUTING: {
         if (!payload.planId) throw new Error('Missing planId in EXECUTING');
         const planId = payload.planId as string;
+
+        const poIds = (payload.poIds as string[]) || [];
+        for (const poId of poIds) {
+          const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
+          if (po && (po.status === 'APPROVED' || po.status === 'ORDERED')) {
+            await procurementService.confirmDelivery(poId, po.quantity);
+          }
+        }
         
         const plan = await prisma.productionPlan.findUnique({ 
           where: { id: planId }, 

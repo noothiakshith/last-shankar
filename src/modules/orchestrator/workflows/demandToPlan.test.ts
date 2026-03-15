@@ -13,6 +13,9 @@ const mockPrismaClient = vi.hoisted(() => ({
   },
   trainedModel: {
     findFirst: vi.fn(),
+  },
+  productionPlan: {
+    update: vi.fn(),
   }
 }));
 

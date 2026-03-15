@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { ProductionPlanStatus, OrderStatus, ForecastStatus } from '@prisma/client';
+import { inventoryService } from '@/modules/inventory/inventoryService';
 
 export interface MaterialRequirement {
   materialId: string;
@@ -173,15 +174,9 @@ export class ProductionPlanningService {
     let isReady = true;
 
     for (const req of materialRequirements.values()) {
-      const material = await prisma.material.findUnique({
-        where: { id: req.materialId }
-      });
+      const stockLevel = await inventoryService.getStockLevel(req.materialId);
 
-      if (!material) {
-        throw new Error(`Material ${req.materialId} not found`);
-      }
-
-      const shortage = Math.max(0, req.requiredQuantity - material.onHand);
+      const shortage = Math.max(0, req.requiredQuantity - stockLevel.onHand);
       
       if (shortage > 0) {
         isReady = false;
@@ -192,7 +187,7 @@ export class ProductionPlanningService {
         materialSku: req.materialSku,
         materialName: req.materialName,
         required: req.requiredQuantity,
-        available: material.onHand,
+        available: stockLevel.onHand,
         shortage,
         unit: req.unit
       });
