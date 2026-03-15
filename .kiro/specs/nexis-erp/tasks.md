@@ -198,28 +198,28 @@ Incremental implementation starting with project scaffolding and shared infrastr
 - [x] 11. Checkpoint — Ensure production and inventory tests pass, ask the user if questions arise.
 
 
-- [ ] 12. Supplier & Procurement Module
-  - [ ] 12.1 Implement supplier lookup and PO creation
+- [x] 12. Supplier & Procurement Module
+  - [x] 12.1 Implement supplier lookup and PO creation
     - Create `src/modules/procurement/procurementService.ts`
     - Implement `findSuppliers(materialId)`: query SupplierMaterial join to return only qualified suppliers for that material
     - Implement `createPurchaseOrder(po)`: persist PO with status `DRAFT`, compute `totalCost = quantity × unitCost`
     - _Requirements: 9.1, 9.2_
-  - [ ] 12.2 Write property test for PO total cost calculation
+  - [x] 12.2 Write property test for PO total cost calculation
     - **Property 21: PO total cost equals quantity times unit cost**
     - **Validates: Requirements 9.2**
-  - [ ] 12.3 Write property test for supplier lookup qualification
+  - [x] 12.3 Write property test for supplier lookup qualification
     - **Property 22: Supplier lookup returns only qualified suppliers**
     - **Validates: Requirements 9.1**
-  - [ ] 12.4 Implement PO lifecycle and delivery confirmation
+  - [x] 12.4 Implement PO lifecycle and delivery confirmation
     - Implement `getPOStatus`, `getPendingPOs`
     - Implement PO submission: set status to `PENDING_APPROVAL`, call `orchestrator.requestApproval` for PO_APPROVAL gate
     - Implement `confirmDelivery(poId, receivedQty)`: set PO status to `DELIVERED`, call `inventoryService.updateStock` with delta = receivedQty
     - On rejection: set PO status to `REJECTED`
     - _Requirements: 9.3, 9.4, 9.5, 9.6_
-  - [ ] 12.5 Write property test for delivery confirmation triggering stock update
+  - [x] 12.5 Write property test for delivery confirmation triggering stock update
     - **Property 23: Delivery confirmation triggers stock update**
     - **Validates: Requirements 9.5**
-  - [ ] 12.6 Implement Procurement API routes
+  - [x] 12.6 Implement Procurement API routes
     - `GET /api/procurement/suppliers/[materialId]` — PROCUREMENT_OFFICER only
     - `POST /api/procurement/po` — PROCUREMENT_OFFICER only
     - `GET /api/procurement/po/[id]` — PROCUREMENT_OFFICER, FINANCE_MANAGER
@@ -227,38 +227,38 @@ Incremental implementation starting with project scaffolding and shared infrastr
     - `POST /api/procurement/po/[id]/deliver` — PROCUREMENT_OFFICER only
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ] 13. Finance Module
-  - [ ] 13.1 Implement budget validation and PO approval
+- [x] 13. Finance Module
+  - [x] 13.1 Implement budget validation and PO approval
     - Create `src/modules/finance/financeService.ts`
     - Implement `validateBudget(amount, costCenter)`: return success iff `amount ≤ (totalBudget - committed - spent)`
     - Implement `approvePO(poId, approvedBy)`: validate budget, record `approvedBy`/`approvedAt`, increment `committed` by PO totalCost
     - Implement `rejectPO(poId, rejectedBy, reason)`: set PO status to REJECTED
     - _Requirements: 10.1, 10.2, 10.3_
-  - [ ] 13.2 Write property test for budget validation correctness
+  - [x] 13.2 Write property test for budget validation correctness
     - **Property 24: Budget validation is correct at all amounts**
     - **Validates: Requirements 10.1, 10.2**
-  - [ ] 13.3 Write property test for PO approval committed balance increment
+  - [x] 13.3 Write property test for PO approval committed balance increment
     - **Property 25: PO approval increments committed balance by exact PO cost**
     - **Validates: Requirements 10.3**
-  - [ ] 13.4 Implement expense recording and budget summary
+  - [x] 13.4 Implement expense recording and budget summary
     - Implement `recordExpense(expense)`: persist Expense record, increment `spent` on Budget
     - Implement `getBudgetSummary(costCenter)`: return Budget record for cost center
     - _Requirements: 10.4, 10.5_
-  - [ ] 13.5 Write property test for expense recording spent balance increment
+  - [x] 13.5 Write property test for expense recording spent balance increment
     - **Property 26: Expense recording increments spent balance by exact amount**
     - **Validates: Requirements 10.4**
-  - [ ] 13.6 Implement Finance API routes
+  - [x] 13.6 Implement Finance API routes
     - `POST /api/finance/po/[id]/approve` — FINANCE_MANAGER only
     - `POST /api/finance/po/[id]/reject` — FINANCE_MANAGER only
     - `POST /api/finance/expense` — FINANCE_MANAGER only
     - `GET /api/finance/budget/[costCenter]` — FINANCE_MANAGER, EXECUTIVE
     - _Requirements: 10.1, 10.3, 10.4, 10.5_
 
-- [ ] 14. Checkpoint — Ensure procurement and finance tests pass, ask the user if questions arise.
+- [x] 14. Checkpoint — Ensure procurement and finance tests pass, ask the user if questions arise.
 
 
-- [ ] 15. HR Module (minimal)
-  - [ ] 15.1 Implement HR service and API routes
+- [x] 15. HR Module (minimal)
+  - [x] 15.1 Implement HR service and API routes
     - Create `src/modules/hr/hrService.ts` implementing `getEmployee`, `listEmployeesByDepartment`, `allocateToWorkflow`
     - `allocateToWorkflow` records employee–WorkflowRun association (can be a simple JSON field or join table)
     - Restrict all employee PII endpoints to ADMIN role via `withAuth`
@@ -266,15 +266,15 @@ Incremental implementation starting with project scaffolding and shared infrastr
     - `GET /api/hr/employees?department=X` — ADMIN only
     - `POST /api/hr/employee/[id]/allocate` — ADMIN only
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
-  - [ ] 15.2 Write property test for employee department filter
+  - [x] 15.2 Write property test for employee department filter
     - **Property 27: Employee department filter is complete and sound**
     - **Validates: Requirements 11.3**
-  - [ ] 15.3 Write property test for employee PII access restriction
+  - [x] 15.3 Write property test for employee PII access restriction
     - **Property 28: Employee PII is inaccessible to non-ADMIN roles**
     - **Validates: Requirements 11.5**
 
-- [ ] 16. LLM Intelligence Module (minimal)
-  - [ ] 16.1 Implement LLM service and API routes
+- [x] 16. LLM Intelligence Module (minimal)
+  - [x] 16.1 Implement LLM service and API routes
     - Create `src/modules/llm/llmService.ts` implementing `summarizeWorkflow` and `explainForecast`
     - `summarizeWorkflow(runId)`: fetch WorkflowRun + recent WorkflowEvents + pending ApprovalGates; compose a natural language summary string (template-based or via external LLM API call)
     - `explainForecast(forecastId)`: fetch ForecastResult + TrainedModel; compose natural language description
@@ -283,20 +283,20 @@ Incremental implementation starting with project scaffolding and shared infrastr
     - _Requirements: 12.1, 12.2_
 
 
-- [ ] 17. Demand-to-Plan workflow orchestration wiring
-  - [ ] 17.1 Implement DEMAND_TO_PLAN workflow dispatcher
+- [x] 17. Demand-to-Plan workflow orchestration wiring
+  - [x] 17.1 Implement DEMAND_TO_PLAN workflow dispatcher
     - Create `src/modules/orchestrator/workflows/demandToPlan.ts`
     - Wire the full sequence: Sales forecast → FORECAST_APPROVAL gate → MRP → shortage detection → (if shortages) PO creation → PO_APPROVAL gate → Finance budget validation → PRODUCTION_AUTHORIZATION gate → production execution → finished goods update → COMPLETED
     - Skip PROCUREMENT and PENDING_PO_APPROVAL states when no shortages are detected
     - _Requirements: 13.1, 13.2, 13.3_
-  - [ ] 17.2 Write property test for no-shortage workflow skipping procurement states
+  - [x] 17.2 Write property test for no-shortage workflow skipping procurement states
     - **Property 29: No-shortage workflow skips procurement states**
     - **Validates: Requirements 13.3**
-  - [ ] 17.3 Implement PLAN_TO_PRODUCE and PROCURE_TO_PAY workflow dispatchers
+  - [x] 17.3 Implement PLAN_TO_PRODUCE and PROCURE_TO_PAY workflow dispatchers
     - Create stub dispatchers for the remaining two workflow types following the same pattern
     - _Requirements: 3.2_
 
-- [ ] 18. Checkpoint — Run full DEMAND_TO_PLAN integration test with seeded data, ensure all state transitions and approval gates fire correctly. Ask the user if questions arise.
+- [x] 18. Checkpoint — Run full DEMAND_TO_PLAN integration test with seeded data, ensure all state transitions and approval gates fire correctly. Ask the user if questions arise.
 
 
 - [ ] 19. Frontend dashboards

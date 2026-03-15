@@ -220,8 +220,8 @@ export class ProductionPlanningService {
       throw new Error(`Production plan ${planId} not found`);
     }
 
-    if (plan.status !== ProductionPlanStatus.DRAFT) {
-      throw new Error(`Production plan ${planId} is not in DRAFT status. Current status: ${plan.status}`);
+    if (plan.status !== ProductionPlanStatus.DRAFT && plan.status !== ProductionPlanStatus.PENDING_AUTHORIZATION) {
+      throw new Error(`Production plan ${planId} is not in DRAFT or PENDING_AUTHORIZATION status. Current status: ${plan.status}`);
     }
 
     return prisma.productionPlan.update({

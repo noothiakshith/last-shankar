@@ -15,11 +15,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   return withAuth(async () => {
     try {
-      const { itemId } = params;
+      const { itemId } = await params;
 
       const stockLevel = await inventoryService.getStockLevel(itemId);
       return NextResponse.json(stockLevel, { status: 200 });
@@ -42,11 +42,11 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   return withAuth(async () => {
     try {
-      const { itemId } = params;
+      const { itemId } = await params;
       const body = await req.json();
       const { delta, reason, reference } = body;
 

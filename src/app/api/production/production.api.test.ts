@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { Role, ProductionPlanStatus } from '@prisma/client';
 
 // Mock the auth middleware BEFORE imports
 vi.mock('@/lib/auth', () => ({
-  withAuth: (handler: any) => {
-    return async (req: NextRequest, ...args: any[]) => {
+  withAuth: (handler: (...arg: unknown[]) => unknown) => {
+    return async (req: NextRequest, ...args: unknown[]) => {
       // Mock token for testing
       const mockToken = {
         id: 'user-1',
@@ -57,7 +59,7 @@ describe('Production Planning API Routes', () => {
         authorizedBy: null
       };
 
-      vi.mocked(productionPlanningService.runMRP).mockResolvedValue(mockPlan as any);
+      vi.mocked(productionPlanningService.runMRP).mockResolvedValue(mockPlan as unknown as any);
 
       const req = new NextRequest('http://localhost:3000/api/production/mrp', {
         method: 'POST',
@@ -165,7 +167,7 @@ describe('Production Planning API Routes', () => {
         authorizedBy: 'user-1'
       };
 
-      vi.mocked(productionPlanningService.authorizePlan).mockResolvedValue(mockPlan as any);
+      vi.mocked(productionPlanningService.authorizePlan).mockResolvedValue(mockPlan as unknown as any);
 
       const req = new NextRequest('http://localhost:3000/api/production/plan/plan-1/authorize', {
         method: 'POST'

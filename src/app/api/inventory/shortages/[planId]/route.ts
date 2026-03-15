@@ -15,11 +15,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { planId: string } }
+  { params }: { params: Promise<{ planId: string }> }
 ) {
   return withAuth(async () => {
     try {
-      const { planId } = params;
+      const { planId } = await params;
 
       const shortageReport = await inventoryService.detectShortages(planId);
       return NextResponse.json(shortageReport, { status: 200 });
