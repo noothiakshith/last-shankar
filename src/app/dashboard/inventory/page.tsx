@@ -25,6 +25,7 @@ interface SafetyAlert {
 export default function InventoryDashboard() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [alerts, setAlerts] = useState<SafetyAlert[]>([]);
+  const [ledger, setLedger] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,6 +49,13 @@ export default function InventoryDashboard() {
       if (alertsRes.ok) {
         const alertsData = await alertsRes.json();
         setAlerts(alertsData);
+      }
+
+      // Fetch stock ledger
+      const ledgerRes = await fetch('/api/inventory/ledger');
+      if (ledgerRes.ok) {
+        const ledgerData = await ledgerRes.json();
+        setLedger(ledgerData);
       }
     } catch (error) {
       console.error('Error loading inventory data:', error);
@@ -255,6 +263,51 @@ export default function InventoryDashboard() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          border: '1px solid #e2e8f0',
+          marginTop: '2rem'
+        }}>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1.5rem' }}>
+            Stock Ledger (Movement History)
+          </h4>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Time</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Material</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'right', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Delta</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Reason</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Reference</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledger.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#718096' }}>No movements recorded</td>
+                  </tr>
+                ) : (
+                  ledger.map((entry) => (
+                    <tr key={entry.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '1rem', whiteSpace: 'nowrap' }}>{new Date(entry.occurredAt).toLocaleString()}</td>
+                      <td style={{ padding: '1rem', fontWeight: '500' }}>{entry.material.name}</td>
+                      <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: entry.delta > 0 ? '#48bb78' : '#f56565' }}>
+                        {entry.delta > 0 ? '+' : ''}{entry.delta.toLocaleString()}
+                      </td>
+                      <td style={{ padding: '1rem' }}>{entry.reason}</td>
+                      <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#718096' }}>{entry.reference || '-'}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

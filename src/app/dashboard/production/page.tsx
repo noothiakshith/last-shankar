@@ -36,6 +36,7 @@ export default function ProductionDashboard() {
   const [selectedPlan, setSelectedPlan] = useState<ProductionPlan | null>(null);
   const [readiness, setReadiness] = useState<ReadinessReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authorizing, setAuthorizing] = useState(false);
 
   useEffect(() => {
     loadProductionData();
@@ -76,6 +77,27 @@ export default function ProductionDashboard() {
       }
     } catch (error) {
       console.error('Error loading readiness:', error);
+    }
+  };
+
+  const handleAuthorize = async () => {
+    if (!selectedPlan) return;
+    setAuthorizing(true);
+    try {
+      const response = await fetch(`/api/production/plan/${selectedPlan.id}/authorize`, {
+        method: 'POST'
+      });
+      if (response.ok) {
+        alert('Plan authorized successfully');
+        loadProductionData();
+      } else {
+        const data = await response.json();
+        alert(`Authorization failed: ${data.error}`);
+      }
+    } catch (err) {
+      alert('Error authorizing plan');
+    } finally {
+      setAuthorizing(false);
     }
   };
 
@@ -197,42 +219,65 @@ export default function ProductionDashboard() {
                 <h4 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1.5rem' }}>
                   Material Requirements (MRP) - Plan {selectedPlan.id.substring(0, 8)}
                 </h4>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                        <th style={{ padding: '0.75rem', textAlign: 'left', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Material</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Required</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Available</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'right', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Shortage</th>
-                        <th style={{ padding: '0.75rem', textAlign: 'center', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {readiness.materials.map((item) => (
-                        <tr key={item.materialId} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '1rem', fontWeight: '500' }}>{item.materialName}</td>
-                          <td style={{ padding: '1rem', textAlign: 'right' }}>{item.required.toLocaleString()} {item.unit}</td>
-                          <td style={{ padding: '1rem', textAlign: 'right' }}>{item.available.toLocaleString()} {item.unit}</td>
-                          <td style={{ padding: '1rem', textAlign: 'right', color: item.shortage > 0 ? '#f56565' : '#718096' }}>
-                            {item.shortage > 0 ? item.shortage.toLocaleString() : '-'}
-                          </td>
-                          <td style={{ padding: '1rem', textAlign: 'center' }}>
-                            <span style={{
-                              padding: '0.25rem 0.75rem',
-                              background: item.shortage > 0 ? '#fed7d7' : '#c6f6d5',
-                              color: item.shortage > 0 ? '#c53030' : '#22543d',
-                              borderRadius: '12px',
-                              fontSize: '0.85rem',
-                              fontWeight: '600'
-                            }}>
-                              {item.shortage > 0 ? 'Shortage' : 'Sufficient'}
-                            </span>
-                          </td>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <div style={{ flex: 1, overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Material</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'right', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Required</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'right', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Available</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'right', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Shortage</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'center', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Status</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {readiness.materials.map((item) => (
+                          <tr key={item.materialId} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                            <td style={{ padding: '1rem', fontWeight: '500' }}>{item.materialName}</td>
+                            <td style={{ padding: '1rem', textAlign: 'right' }}>{item.required.toLocaleString()} {item.unit}</td>
+                            <td style={{ padding: '1rem', textAlign: 'right' }}>{item.available.toLocaleString()} {item.unit}</td>
+                            <td style={{ padding: '1rem', textAlign: 'right', color: item.shortage > 0 ? '#f56565' : '#718096' }}>
+                              {item.shortage > 0 ? item.shortage.toLocaleString() : '-'}
+                            </td>
+                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                              <span style={{
+                                padding: '0.25rem 0.75rem',
+                                background: item.shortage > 0 ? '#fed7d7' : '#c6f6d5',
+                                color: item.shortage > 0 ? '#c53030' : '#22543d',
+                                borderRadius: '12px',
+                                fontSize: '0.85rem',
+                                fontWeight: '600'
+                              }}>
+                                {item.shortage > 0 ? 'Shortage' : 'Sufficient'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {(['DRAFT', 'PENDING_AUTHORIZATION'].includes(selectedPlan.status)) && (
+                    <button
+                      onClick={handleAuthorize}
+                      disabled={authorizing || !readiness.isReady}
+                      style={{
+                        padding: '1rem 2rem',
+                        background: (authorizing || !readiness.isReady) ? '#a0aec0' : '#48bb78',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: (authorizing || !readiness.isReady) ? 'not-allowed' : 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        boxShadow: '0 4px 6px rgba(72,187,120,0.2)',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {authorizing ? 'Processing...' : '✅ Authorize Plan'}
+                    </button>
+                  )}
                 </div>
               </div>
             )}

@@ -6,6 +6,7 @@ import { productionPlanningService } from '@/modules/production/productionPlanni
 import { inventoryService } from '@/modules/inventory/inventoryService';
 import { procurementService } from '@/modules/procurement/procurementService';
 import { validateBudget, approvePO, rejectPO } from '@/modules/finance/financeService';
+import { hrService } from '@/modules/hr/hrService';
 import { WorkflowState, ApprovalGateType, Role, ProductionPlanStatus } from '@prisma/client';
 
 export async function dispatchDemandToPlan(runId: string) {
@@ -60,6 +61,17 @@ export async function dispatchDemandToPlan(runId: string) {
         });
 
         const shortageReport = await inventoryService.detectShortages(plan.id);
+        
+        // AI Optimization: Automatically allocate the least busy production staff
+        try {
+          const optimalStaff = await hrService.getLeastBusyEmployee('Production');
+          if (optimalStaff) {
+            await hrService.allocateToWorkflow(optimalStaff.id, run.id);
+            console.log(`AI Staffing: Allocated ${optimalStaff.name} to workflow ${run.id}`);
+          }
+        } catch (e) {
+          console.error("AI Staffing failed, but continuing workflow:", e);
+        }
 
         if (shortageReport.shortages && shortageReport.shortages.length > 0) {
           await orchestratorService.advanceState(run.id, 'START_PROCUREMENT');
@@ -124,7 +136,10 @@ export async function dispatchDemandToPlan(runId: string) {
         
         if (budgetAllowed) {
           for (const poId of poIds) {
-            await approvePO(poId, run.triggeredBy);
+            const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
+            if (po && po.status === 'PENDING_APPROVAL') {
+              await approvePO(poId, run.triggeredBy);
+            }
           }
           await prisma.productionPlan.update({
             where: { id: payload.planId as string },
@@ -134,7 +149,10 @@ export async function dispatchDemandToPlan(runId: string) {
           await orchestratorService.requestApproval(run.id, ApprovalGateType.PRODUCTION_AUTHORIZATION, Role.PRODUCTION_PLANNER);
         } else {
           for (const poId of poIds) {
-            await rejectPO(poId, run.triggeredBy);
+            const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
+            if (po && po.status === 'PENDING_APPROVAL') {
+              await rejectPO(poId, run.triggeredBy);
+            }
           }
           await orchestratorService.advanceState(run.id, 'REJECT_FINANCE');
         }

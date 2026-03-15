@@ -90,6 +90,16 @@ export class OrchestratorService {
   }
 
   async requestApproval(runId: string, gateType: ApprovalGateType, requiredRole: Role) {
+    const existing = await prisma.approvalGate.findFirst({
+      where: {
+        workflowRunId: runId,
+        gateType,
+        status: ApprovalStatus.PENDING
+      }
+    });
+
+    if (existing) return existing;
+
     return prisma.approvalGate.create({
       data: {
         workflowRunId: runId,

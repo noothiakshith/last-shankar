@@ -3,8 +3,10 @@
 import DashboardLayout from '@/components/DashboardLayout';
 import KPICard from '@/components/KPICard';
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
   const [stats] = useState({
     activeWorkflows: 0,
     pendingApprovals: 0,
@@ -73,45 +75,51 @@ export default function DashboardPage() {
               Quick Actions
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <a href="/dashboard/sales" style={{
-                padding: '0.75rem',
-                background: '#f7fafc',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                color: '#1a202c',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
-                <span>📈</span>
-                <span>Generate Sales Forecast</span>
-              </a>
-              <a href="/dashboard/orchestrator" style={{
-                padding: '0.75rem',
-                background: '#f7fafc',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                color: '#1a202c',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
-                <span>🎯</span>
-                <span>View Workflow Status</span>
-              </a>
-              <a href="/dashboard/inventory" style={{
-                padding: '0.75rem',
-                background: '#f7fafc',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                color: '#1a202c',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
-                <span>📦</span>
-                <span>Check Inventory Levels</span>
-              </a>
+              {(!session?.user?.role || ['ADMIN', 'SALES_ANALYST'].includes(session.user.role)) && (
+                <a href="/dashboard/sales" style={{
+                  padding: '0.75rem',
+                  background: '#f7fafc',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  color: '#1a202c',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem'
+                }}>
+                  <span>📈</span>
+                  <span>Generate Sales Forecast</span>
+                </a>
+              )}
+              {(!session?.user?.role || ['ADMIN', 'EXECUTIVE'].includes(session.user.role)) && (
+                <a href="/dashboard/orchestrator" style={{
+                  padding: '0.75rem',
+                  background: '#f7fafc',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  color: '#1a202c',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem'
+                }}>
+                  <span>🎯</span>
+                  <span>View Workflow Status</span>
+                </a>
+              )}
+              {(!session?.user?.role || ['ADMIN', 'INVENTORY_MANAGER', 'PRODUCTION_PLANNER', 'PROCUREMENT_OFFICER'].includes(session.user.role)) && (
+                <a href="/dashboard/inventory" style={{
+                  padding: '0.75rem',
+                  background: '#f7fafc',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  color: '#1a202c',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem'
+                }}>
+                  <span>📦</span>
+                  <span>Check Inventory Levels</span>
+                </a>
+              )}
             </div>
           </div>
 

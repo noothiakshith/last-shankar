@@ -30,6 +30,9 @@ export default function OrchestratorDashboard() {
   const [loading, setLoading] = useState(true);
   const [summaries, setSummaries] = useState<Record<string, string>>({});
   const [loadingSummaries, setLoadingSummaries] = useState<Record<string, boolean>>({});
+  const [showTriggerModal, setShowTriggerModal] = useState(false);
+  const [triggering, setTriggering] = useState(false);
+  const [newWorkflow, setNewWorkflow] = useState({ type: 'DEMAND_TO_PLAN', planId: '', productId: 'prod-widget-a' });
 
   useEffect(() => {
     loadWorkflows();
@@ -65,6 +68,34 @@ export default function OrchestratorDashboard() {
       console.error('Error fetching summary:', err);
     } finally {
       setLoadingSummaries(prev => ({ ...prev, [runId]: false }));
+    }
+  };
+
+  const handleTrigger = async () => {
+    setTriggering(true);
+    try {
+      const payload = newWorkflow.type === 'DEMAND_TO_PLAN' 
+        ? { productId: newWorkflow.productId }
+        : { planId: newWorkflow.planId };
+
+      const response = await fetch('/api/orchestrator/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: newWorkflow.type, payload })
+      });
+
+      if (response.ok) {
+        alert('Workflow triggered successfully');
+        setShowTriggerModal(false);
+        loadWorkflows();
+      } else {
+        const data = await response.json();
+        alert(`Failed to trigger: ${data.error}`);
+      }
+    } catch (err) {
+      alert('Error triggering workflow');
+    } finally {
+      setTriggering(false);
     }
   };
 
@@ -234,21 +265,38 @@ export default function OrchestratorDashboard() {
             <h4 style={{ fontSize: '1.1rem', fontWeight: '600' }}>
               Workflow Pipeline
             </h4>
-            <button
-              onClick={loadWorkflows}
-              style={{
-                padding: '0.5rem 1rem',
-                background: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: '500'
-              }}
-            >
-              🔄 Refresh
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowTriggerModal(true)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: '#48bb78',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  fontWeight: '600'
+                }}
+              >
+                🚀 Trigger New Workflow
+              </button>
+              <button
+                onClick={loadWorkflows}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  fontWeight: '500'
+                }}
+              >
+                🔄 Refresh
+              </button>
+            </div>
           </div>
           <div style={{ 
             display: 'flex', 
@@ -390,6 +438,94 @@ export default function OrchestratorDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Trigger Modal */}
+        {showTriggerModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'white',
+              padding: '2rem',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '400px',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+            }}>
+              <h4 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Trigger New Workflow</h4>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Workflow Type</label>
+                <select 
+                  value={newWorkflow.type}
+                  onChange={(e) => setNewWorkflow({...newWorkflow, type: e.target.value})}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                >
+                  <option value="DEMAND_TO_PLAN">Demand to Plan</option>
+                  <option value="PLAN_TO_PRODUCE">Plan to Produce</option>
+                </select>
+              </div>
+
+              {newWorkflow.type === 'DEMAND_TO_PLAN' ? (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Product ID</label>
+                  <input 
+                    type="text" 
+                    value={newWorkflow.productId}
+                    onChange={(e) => setNewWorkflow({...newWorkflow, productId: e.target.value})}
+                    placeholder="prod-widget-a"
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                  />
+                </div>
+              ) : (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Plan ID</label>
+                  <input 
+                    type="text" 
+                    value={newWorkflow.planId}
+                    onChange={(e) => setNewWorkflow({...newWorkflow, planId: e.target.value})}
+                    placeholder="Enter Production Plan ID"
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={() => setShowTriggerModal(false)}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleTrigger}
+                  disabled={triggering}
+                  style={{ 
+                    padding: '0.5rem 1rem', 
+                    borderRadius: '6px', 
+                    background: '#667eea', 
+                    color: 'white', 
+                    border: 'none',
+                    fontWeight: '600',
+                    cursor: triggering ? 'not-allowed' : 'pointer',
+                    opacity: triggering ? 0.7 : 1
+                  }}
+                >
+                  {triggering ? 'Triggering...' : 'Initialize'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

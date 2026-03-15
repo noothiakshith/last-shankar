@@ -16,8 +16,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
+    } else if (status === 'authenticated' && session?.user?.role) {
+      const currentMenuItem = [
+        { path: '/dashboard/orchestrator', roles: ['ADMIN', 'EXECUTIVE'] },
+        { path: '/dashboard/sales', roles: ['ADMIN', 'SALES_ANALYST'] },
+        { path: '/dashboard/production', roles: ['ADMIN', 'PRODUCTION_PLANNER'] },
+        { path: '/dashboard/inventory', roles: ['ADMIN', 'INVENTORY_MANAGER', 'PRODUCTION_PLANNER', 'PROCUREMENT_OFFICER'] },
+        { path: '/dashboard/procurement', roles: ['ADMIN', 'PROCUREMENT_OFFICER', 'FINANCE_MANAGER'] },
+        { path: '/dashboard/finance', roles: ['ADMIN', 'FINANCE_MANAGER', 'EXECUTIVE'] },
+        { path: '/dashboard/hr', roles: ['ADMIN', 'EXECUTIVE'] },
+      ].find(item => pathname === item.path || pathname.startsWith(item.path + '/'));
+
+      if (currentMenuItem && !currentMenuItem.roles.includes(session.user.role)) {
+        router.push('/dashboard');
+      }
     }
-  }, [status, router]);
+  }, [status, router, pathname, session]);
 
   if (status === 'loading') {
     return (
@@ -32,15 +46,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const menuItems = [
-    { path: '/dashboard', label: 'Overview', icon: '📊' },
-    { path: '/dashboard/orchestrator', label: 'Orchestrator', icon: '🎯' },
-    { path: '/dashboard/sales', label: 'Sales Intelligence', icon: '📈' },
-    { path: '/dashboard/production', label: 'Production', icon: '🏭' },
-    { path: '/dashboard/inventory', label: 'Inventory', icon: '📦' },
-    { path: '/dashboard/procurement', label: 'Procurement', icon: '🛒' },
-    { path: '/dashboard/finance', label: 'Finance', icon: '💰' },
-    { path: '/dashboard/hr', label: 'Human Resources', icon: '👥' },
+    { path: '/dashboard', label: 'Overview', icon: '📊', roles: ['ALL'] },
+    { path: '/dashboard/orchestrator', label: 'Orchestrator', icon: '🎯', roles: ['ADMIN', 'EXECUTIVE'] },
+    { path: '/dashboard/sales', label: 'Sales Intelligence', icon: '📈', roles: ['ADMIN', 'SALES_ANALYST'] },
+    { path: '/dashboard/production', label: 'Production', icon: '🏭', roles: ['ADMIN', 'PRODUCTION_PLANNER'] },
+    { path: '/dashboard/inventory', label: 'Inventory', icon: '📦', roles: ['ADMIN', 'INVENTORY_MANAGER', 'PRODUCTION_PLANNER', 'PROCUREMENT_OFFICER'] },
+    { path: '/dashboard/procurement', label: 'Procurement', icon: '🛒', roles: ['ADMIN', 'PROCUREMENT_OFFICER', 'FINANCE_MANAGER'] },
+    { path: '/dashboard/finance', label: 'Finance', icon: '💰', roles: ['ADMIN', 'FINANCE_MANAGER', 'EXECUTIVE'] },
+    { path: '/dashboard/hr', label: 'Human Resources', icon: '👥', roles: ['ADMIN', 'EXECUTIVE'] },
   ];
+
+  const userRole = session.user?.role || 'USER';
+  const visibleMenuItems = menuItems.filter(
+    (item) => item.roles.includes('ALL') || item.roles.includes(userRole)
+  );
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f7fafc' }}>
@@ -60,7 +79,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         <nav style={{ flex: 1, padding: '1rem' }}>
-          {menuItems.map((item) => (
+          {visibleMenuItems.map((item) => (
             <button
               key={item.path}
               onClick={() => router.push(item.path)}

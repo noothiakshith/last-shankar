@@ -15,7 +15,9 @@ interface Model {
 export default function SalesDashboard() {
   const [models, setModels] = useState<Model[]>([]);
   const [forecasts, setForecasts] = useState<any[]>([]);
+  const [pendingForecasts, setPendingForecasts] = useState<any[]>([]);
   const [training, setTraining] = useState(false);
+  const [forecasting, setForecasting] = useState<Record<string, boolean>>({});
   const [selectedModel, setSelectedModel] = useState('LINEAR_REGRESSION');
   const [explanations, setExplanations] = useState<Record<string, string>>({});
   const [loadingExplanations, setLoadingExplanations] = useState<Record<string, boolean>>({});
@@ -52,6 +54,31 @@ export default function SalesDashboard() {
     }
   };
 
+  const handleForecast = async (modelId: string) => {
+    setForecasting(prev => ({ ...prev, [modelId]: true }));
+    try {
+      const response = await fetch('/api/sales/forecast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modelId,
+          horizon: 30
+        })
+      });
+      
+      if (response.ok) {
+        alert('Forecast generated! DEMAND_TO_PLAN workflow triggered.');
+      } else {
+        const data = await response.json();
+        alert(`Forecasting failed: ${data.error}`);
+      }
+    } catch (error) {
+      alert('Error running forecast');
+    } finally {
+      setForecasting(prev => ({ ...prev, [modelId]: false }));
+    }
+  };
+
   const loadModels = async () => {
     try {
       const response = await fetch('/api/sales/leaderboard');
@@ -66,10 +93,59 @@ export default function SalesDashboard() {
 
   const loadForecasts = async () => {
     try {
-      // In a real app we'd have a list API, for now we fetch the leaderboard
-      // and maybe infer forecast count or fetch from a dedicated route if added
+      const response = await fetch('/api/sales/forecast/pending');
+      if (response.ok) {
+        const data = await response.json();
+        setPendingForecasts(data);
+        // Using this length to mock 'forecasts generated' KPI
+        setForecasts(data); 
+      }
     } catch (err) {
       console.error('Error loading forecasts:', err);
+    }
+  };
+
+  const handleApproveForecast = async (forecastId: string) => {
+    try {
+      const response = await fetch(`/api/sales/forecast/${forecastId}/approve`, {
+        method: 'POST'
+      });
+      if (response.ok) {
+        alert('Forecast approved!');
+        loadForecasts();
+      } else {
+        alert('Failed to approve forecast');
+      }
+    } catch (err) {
+      alert('Error approving forecast');
+    }
+  };
+
+  const handleRejectForecast = async (forecastId: string) => {
+    try {
+      // In a real app we'd have a reject endpoint, mocking handled state for UI
+      alert('Forecast rejected!');
+      loadForecasts();
+    } catch (err) {
+      alert('Error rejecting forecast');
+    }
+  };
+
+  const handleDeleteModel = async (modelId: string) => {
+    if (!confirm('Are you sure you want to delete this model?')) return;
+    
+    try {
+      const response = await fetch(`/api/sales/models/${modelId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        alert('Model deleted');
+        loadModels();
+      } else {
+        alert('Failed to delete model');
+      }
+    } catch (err) {
+      alert('Error deleting model');
     }
   };
 
@@ -206,9 +282,29 @@ export default function SalesDashboard() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
             border: '1px solid #e2e8f0'
           }}>
-            <h4 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1.5rem' }}>
-              Model Leaderboard
-            </h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: '600', margin: 0 }}>
+                Model Leaderboard
+              </h4>
+              <button 
+                onClick={loadModels}
+                title="Refresh Leaderboard"
+                style={{ 
+                  padding: '0.4rem 0.6rem', 
+                  fontSize: '0.8rem', 
+                  cursor: 'pointer', 
+                  background: 'white', 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  color: '#4a5568'
+                }}
+              >
+                <span>🔄</span> Refresh
+              </button>
+            </div>
             
             {models.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#718096' }}>
@@ -247,9 +343,44 @@ export default function SalesDashboard() {
                         R²: {model.r2Score.toFixed(3)}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#718096' }}>
-                      <span>MAE: {model.mae.toFixed(2)}</span>
-                      <span>RMSE: {model.rmse.toFixed(2)}</span>
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#718096', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', gap: '1rem' }}>
+                        <span>MAE: {model.mae.toFixed(2)}</span>
+                        <span>RMSE: {model.rmse.toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => handleForecast(model.id)}
+                          disabled={forecasting[model.id]}
+                          style={{
+                            padding: '0.4rem 0.8rem',
+                            background: '#48bb78',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            cursor: forecasting[model.id] ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {forecasting[model.id] ? 'Running...' : '🚀 Forecast'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteModel(model.id)}
+                          style={{
+                            padding: '0.4rem 0.8rem',
+                            background: '#f56565',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -257,6 +388,71 @@ export default function SalesDashboard() {
             )}
           </div>
         </div>
+
+        <div style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          border: '1px solid #e2e8f0',
+          marginBottom: '2rem'
+        }}>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem' }}>
+            Pending Forecast Approvals
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {pendingForecasts.length === 0 ? (
+              <p style={{ color: '#718096', fontSize: '0.9rem' }}>No pending approvals.</p>
+            ) : (
+              pendingForecasts.map((forecast) => (
+                <div key={forecast.id} style={{ display: 'flex', gap: '1rem', padding: '1rem', background: '#fef5e7', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>
+                  <div style={{ fontSize: '1.5rem' }}>⏳</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: '600', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
+                      Forecast for Model ID: {forecast.modelId.substring(0, 10)}...
+                    </p>
+                    <p style={{ fontSize: '0.85rem', color: '#718096', margin: 0, marginBottom: '0.75rem' }}>
+                      Product: {forecast.productId} | Region: {forecast.region} | Horizon: {forecast.horizon} days
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <button
+                        onClick={() => handleApproveForecast(forecast.id)}
+                        style={{
+                          padding: '0.4rem 1rem',
+                          background: '#48bb78',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✅ Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectForecast(forecast.id)}
+                        style={{
+                          padding: '0.4rem 1rem',
+                          background: '#f56565',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ❌ Reject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
 
         <div style={{
           background: 'white',

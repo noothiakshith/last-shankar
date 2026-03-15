@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
-import { ProductionPlanStatus, OrderStatus, ForecastStatus } from '@prisma/client';
+import { ProductionPlanStatus, OrderStatus, ForecastStatus, ApprovalGateType, ApprovalStatus, Role } from '@prisma/client';
 import { inventoryService } from '@/modules/inventory/inventoryService';
+import { orchestratorService } from '@/modules/orchestrator/orchestratorService';
 
 export interface MaterialRequirement {
   materialId: string;
@@ -216,14 +217,38 @@ export class ProductionPlanningService {
       throw new Error(`Production plan ${planId} is not in DRAFT or PENDING_AUTHORIZATION status. Current status: ${plan.status}`);
     }
 
-    return prisma.productionPlan.update({
+    const updatedPlan = await prisma.productionPlan.update({
       where: { id: planId },
       data: {
         status: ProductionPlanStatus.AUTHORIZED,
         authorizedBy
       }
     });
+
+    // Resolve orchestrator approval gate if it exists for this plan
+    const run = await prisma.workflowRun.findFirst({
+      where: {
+        payload: {
+          path: ['planId'],
+          equals: planId
+        }
+      },
+      include: { approvals: true }
+    });
+
+    if (run) {
+      const gate = run.approvals.find(g => 
+        g.gateType === ApprovalGateType.PRODUCTION_AUTHORIZATION && 
+        g.status === ApprovalStatus.PENDING
+      );
+      if (gate) {
+        await orchestratorService.resolveApproval(gate.id, Role.PRODUCTION_PLANNER, authorizedBy, true);
+      }
+    }
+
+    return updatedPlan;
   }
 }
 
 export const productionPlanningService = new ProductionPlanningService();
+

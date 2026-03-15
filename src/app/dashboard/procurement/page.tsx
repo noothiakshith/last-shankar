@@ -45,6 +45,36 @@ export default function ProcurementDashboard() {
     return '#718096';
   };
 
+  const handleSubmitOrder = async (poId: string) => {
+    try {
+      const response = await fetch(`/api/procurement/po/${poId}/submit`, { method: 'POST' });
+      if (response.ok) {
+        alert('Order submitted successfully');
+        loadPurchaseOrders();
+      } else {
+        const data = await response.json();
+        alert(`Failed to submit: ${data.error}`);
+      }
+    } catch {
+      alert('Error submitting order');
+    }
+  };
+
+  const handleDeliverOrder = async (poId: string) => {
+    try {
+      const response = await fetch(`/api/procurement/po/${poId}/deliver`, { method: 'POST' });
+      if (response.ok) {
+        alert('Order marked as delivered');
+        loadPurchaseOrders();
+      } else {
+        const data = await response.json();
+        alert(`Failed to deliver: ${data.error}`);
+      }
+    } catch {
+      alert('Error delivering order');
+    }
+  };
+
   const pendingCount = purchaseOrders.filter(po => po.status === 'PENDING_APPROVAL').length;
   const totalSpend = purchaseOrders.reduce((sum, po) => sum + po.totalCost, 0);
 
@@ -118,6 +148,7 @@ export default function ProcurementDashboard() {
                     <th style={{ padding: '0.75rem', textAlign: 'right', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Quantity</th>
                     <th style={{ padding: '0.75rem', textAlign: 'right', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Cost</th>
                     <th style={{ padding: '0.75rem', textAlign: 'center', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Status</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'center', color: '#718096', fontWeight: '600', fontSize: '0.85rem' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -138,6 +169,42 @@ export default function ProcurementDashboard() {
                         }}>
                           {po.status.replace(/_/g, ' ')}
                         </span>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        {po.status === 'APPROVED' && (
+                          <button
+                            onClick={() => handleSubmitOrder(po.id)}
+                            style={{
+                              padding: '0.3rem 0.8rem',
+                              background: '#4299e1',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}
+                          >
+                            Submit Order
+                          </button>
+                        )}
+                        {po.status === 'ORDERED' && (
+                          <button
+                            onClick={() => handleDeliverOrder(po.id)}
+                            style={{
+                              padding: '0.3rem 0.8rem',
+                              background: '#48bb78',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}
+                          >
+                            Mark Delivered
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

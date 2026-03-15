@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { ModelType, ForecastStatus, TrainedModel, ForecastResult, Role, ApprovalGateType } from '@prisma/client';
+import { ModelType, ForecastStatus, TrainedModel, ForecastResult, Role, ApprovalGateType, ApprovalStatus } from '@prisma/client';
 import { orchestratorService } from '@/modules/orchestrator/orchestratorService';
 
 export interface ModelConfig {
@@ -8,7 +8,7 @@ export interface ModelConfig {
   region: string;
 }
 
-const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:8000';
+const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:8008';
 
 export class SalesIntelligenceService {
   async trainModel(config: ModelConfig): Promise<TrainedModel> {
@@ -64,6 +64,13 @@ export class SalesIntelligenceService {
   async getLeaderboard(): Promise<TrainedModel[]> {
     return prisma.trainedModel.findMany({
       orderBy: { mae: 'asc' },
+    });
+  }
+
+  async getPendingForecasts(): Promise<ForecastResult[]> {
+    return prisma.forecastResult.findMany({
+      where: { status: ForecastStatus.PENDING_APPROVAL },
+      orderBy: { generatedAt: 'desc' },
     });
   }
 
@@ -141,7 +148,7 @@ export class SalesIntelligenceService {
       throw new Error(`Forecast ${forecastId} is not pending approval. Current status: ${forecast.status}`);
     }
 
-    return prisma.forecastResult.update({
+    const updatedForecast = await prisma.forecastResult.update({
       where: { id: forecastId },
       data: {
         status: ForecastStatus.APPROVED,
@@ -149,6 +156,29 @@ export class SalesIntelligenceService {
         approvedAt: new Date(),
       }
     });
+
+    // Resolve orchestrator gate
+    const run = await prisma.workflowRun.findFirst({
+      where: {
+        payload: {
+          path: ['forecastId'],
+          equals: forecastId
+        }
+      },
+      include: { approvals: true }
+    });
+
+    if (run) {
+      const gate = run.approvals.find(g => 
+        g.gateType === ApprovalGateType.FORECAST_APPROVAL && 
+        g.status === ApprovalStatus.PENDING
+      );
+      if (gate) {
+        await orchestratorService.resolveApproval(gate.id, Role.SALES_ANALYST, approvedBy, true);
+      }
+    }
+
+    return updatedForecast;
   }
 
   async rejectForecast(forecastId: string): Promise<ForecastResult> {
@@ -164,12 +194,35 @@ export class SalesIntelligenceService {
       throw new Error(`Forecast ${forecastId} is not pending approval. Current status: ${forecast.status}`);
     }
 
-    return prisma.forecastResult.update({
+    const updatedForecast = await prisma.forecastResult.update({
       where: { id: forecastId },
       data: {
         status: ForecastStatus.REJECTED,
       }
     });
+
+    // Resolve orchestrator gate
+    const run = await prisma.workflowRun.findFirst({
+      where: {
+        payload: {
+          path: ['forecastId'],
+          equals: forecastId
+        }
+      },
+      include: { approvals: true }
+    });
+
+    if (run) {
+      const gate = run.approvals.find(g => 
+        g.gateType === ApprovalGateType.FORECAST_APPROVAL && 
+        g.status === ApprovalStatus.PENDING
+      );
+      if (gate) {
+        await orchestratorService.resolveApproval(gate.id, Role.SALES_ANALYST, 'system', false);
+      }
+    }
+
+    return updatedForecast;
   }
 
   async getMLOpsMetrics(modelId: string): Promise<{
@@ -215,6 +268,27 @@ export class SalesIntelligenceService {
         source: data.source,
       }
     });
+  }
+
+  async deleteModel(modelId: string): Promise<void> {
+    const model = await prisma.trainedModel.findUnique({
+      where: { id: modelId }
+    });
+
+    if (model) {
+      // Try to delete from Python service first
+      try {
+        await fetch(`${PYTHON_SERVICE_URL}/models?path=${encodeURIComponent(model.artifactPath)}`, {
+          method: 'DELETE'
+        });
+      } catch (err) {
+        console.warn('Failed to delete model artifact from Python service:', err);
+      }
+
+      await prisma.trainedModel.delete({
+        where: { id: modelId }
+      });
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
-import { Budget, Prisma, Expense } from '@prisma/client'
+import { Budget, Prisma, Expense, ApprovalGateType, ApprovalStatus, Role } from '@prisma/client'
+import { orchestratorService } from '@/modules/orchestrator/orchestratorService'
 
 // --- Pure calculation functions for property testing ---
 
@@ -54,6 +55,27 @@ export async function approvePO(poId: string, approvedBy: string, costCenter: st
       },
     }),
   ])
+
+  // Resolve orchestrator approval gate if it exists for this PO
+  const run = await prisma.workflowRun.findFirst({
+    where: {
+      payload: {
+        path: ['poIds'],
+        array_contains: poId as any
+      }
+    },
+    include: { approvals: true }
+  });
+
+  if (run) {
+    const gate = run.approvals.find(g => 
+      g.gateType === ApprovalGateType.PO_APPROVAL && 
+      g.status === ApprovalStatus.PENDING
+    );
+    if (gate) {
+      await orchestratorService.resolveApproval(gate.id, Role.FINANCE_MANAGER, approvedBy, true);
+    }
+  }
 }
 
 export async function rejectPO(poId: string, rejectedBy: string): Promise<void> {
@@ -65,9 +87,29 @@ export async function rejectPO(poId: string, rejectedBy: string): Promise<void> 
     where: { id: poId },
     data: {
       status: 'REJECTED',
-      // Note: Schema doesn't have rejectedBy field, leaving approvedBy null for rejected POs
     },
   })
+
+  // Resolve orchestrator approval gate if it exists for this PO
+  const run = await prisma.workflowRun.findFirst({
+    where: {
+      payload: {
+        path: ['poIds'],
+        array_contains: poId as any
+      }
+    },
+    include: { approvals: true }
+  });
+
+  if (run) {
+    const gate = run.approvals.find(g => 
+      g.gateType === ApprovalGateType.PO_APPROVAL && 
+      g.status === ApprovalStatus.PENDING
+    );
+    if (gate) {
+      await orchestratorService.resolveApproval(gate.id, Role.FINANCE_MANAGER, rejectedBy, false);
+    }
+  }
 }
 
 export async function recordExpense(expense: { costCenter: string, amount: number, description: string, reference?: string }): Promise<Expense> {
