@@ -30,13 +30,11 @@ export async function getBudgetSummary(costCenter: string): Promise<Budget> {
   return budget
 }
 
-export async function approvePO(poId: string, approvedBy: string): Promise<void> {
+export async function approvePO(poId: string, approvedBy: string, costCenter: string = 'PROCUREMENT'): Promise<void> {
   const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } })
   if (!po) throw new Error('PO not found')
   if (po.status !== 'PENDING_APPROVAL' && po.status !== 'DRAFT') throw new Error('Invalid PO status for approval')
 
-  // Use a hardcoded PROCUREMENT costCenter for PO approval, as seen in schema initialization.
-  const costCenter = 'PROCUREMENT'
   const isValid = await validateBudget(po.totalCost, costCenter)
   if (!isValid) throw new Error('Insufficient budget for PO')
 

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Externalize TensorFlow.js Node and its dependencies to prevent webpack bundling

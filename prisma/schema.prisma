@@ -156,8 +156,10 @@ model WorkflowRun {
   triggeredBy String
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
-  events      WorkflowEvent[]
-  approvals   ApprovalGate[]
+  events              WorkflowEvent[]
+  approvals           ApprovalGate[]
+  allocatedEmployeeId String?
+  allocatedEmployee   Employee?       @relation(fields: [allocatedEmployeeId], references: [id])
 }
 
 model WorkflowEvent {
@@ -363,5 +365,6 @@ model Employee {
   email      String  @unique
   department String
   role       String
-  userId     String? @unique
+  userId       String? @unique
+  workflowRuns WorkflowRun[]
 }

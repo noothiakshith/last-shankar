@@ -24,17 +24,10 @@ export class HRService {
     const workflow = await prisma.workflowRun.findUnique({ where: { id: workflowRunId } });
     if (!workflow) throw new Error('Workflow run not found');
 
-    const payloadObj = (workflow.payload && typeof workflow.payload === 'object' && !Array.isArray(workflow.payload)) 
-                         ? (workflow.payload as Record<string, unknown>) 
-                         : {};
-
     return prisma.workflowRun.update({
       where: { id: workflowRunId },
       data: {
-        payload: {
-          ...payloadObj,
-          allocatedEmployeeId: employee.id,
-        }
+        allocatedEmployeeId: employee.id,
       }
     });
   }

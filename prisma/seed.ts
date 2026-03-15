@@ -59,8 +59,15 @@ async function seedSalesRecords(): Promise<number> {
 
     const rows = parseCsv(filePath)
 
+    const skuToProductId: Record<string, string> = {
+      'PROD-001': 'prod-widget-a',
+      'PROD-002': 'prod-widget-b',
+      'PROD-003': 'prod-gadget-c',
+    }
+    
     for (const row of rows) {
-      const id = salesRecordId(row.date, row.productId, row.region, source)
+      const internalProductId = skuToProductId[row.productId] || row.productId
+      const id = salesRecordId(row.date, internalProductId, row.region, source)
       await prisma.salesRecord.upsert({
         where: { id },
         update: {
@@ -70,7 +77,7 @@ async function seedSalesRecords(): Promise<number> {
         create: {
           id,
           date: new Date(row.date),
-          productId: row.productId,
+          productId: internalProductId,
           region: row.region,
           quantity: parseFloat(row.quantity),
           revenue: parseFloat(row.revenue),

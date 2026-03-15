@@ -344,12 +344,12 @@ Incremental implementation starting with project scaffolding and shared infrastr
 - [ ] 20. Checkpoint — Verify all dashboards render correctly for each role, ask the user if questions arise.
 
 
-- [ ] 21. Docker deployment
-  - [ ] 21.1 Write Dockerfile for Next.js application
+- [x] 21. Docker deployment
+  - [x] 21.1 Write Dockerfile for Next.js application
     - Multi-stage build: `deps` stage installs node_modules, `builder` stage runs `next build`, `runner` stage uses `node:alpine` with only production artifacts
     - Expose port 3000; read `DATABASE_URL`, `NEXTAUTH_SECRET`, `JWT_TTL`, `NEXTAUTH_URL` from environment
     - _Requirements: 15.1, 15.3_
-  - [ ] 21.2 Write docker-compose.yml
+  - [x] 21.2 Write docker-compose.yml
     - Define `app` service (Next.js) and `db` service (postgres:15-alpine)
     - Map configurable host port to container port 3000 via `APP_PORT` env variable
     - Set `db` healthcheck; make `app` depend on `db` being healthy

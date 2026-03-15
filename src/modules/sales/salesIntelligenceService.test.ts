@@ -35,49 +35,34 @@ vi.mock('@/modules/orchestrator/orchestratorService', () => ({
   }
 }));
 
-// Mock TF.js node to avoid actual training in tests
-vi.mock('@tensorflow/tfjs-node', () => {
-  return {
-    sequential: vi.fn(() => ({
-      add: vi.fn(),
-      compile: vi.fn(),
-      fit: vi.fn().mockResolvedValue({}),
-      predict: vi.fn(() => {
-        // Mock prediction values to match input length if possible
-        return {
-          data: vi.fn().mockResolvedValue(new Float32Array(new Array(10).fill(10))), 
-          dispose: vi.fn(),
-        };
-      }),
-      save: vi.fn().mockResolvedValue({}),
-      dispose: vi.fn(),
-    })),
-    layers: {
-      dense: vi.fn(),
-      lstm: vi.fn(),
-    },
-    tensor2d: vi.fn(() => ({
-      dispose: vi.fn(),
-      reshape: vi.fn(() => ({
-        dispose: vi.fn(),
-      })),
-    })),
-    loadLayersModel: vi.fn().mockResolvedValue({
-      predict: vi.fn(() => ({
-        data: vi.fn().mockResolvedValue(new Float32Array([100, 200])),
-        dispose: vi.fn(),
-      })),
-      dispose: vi.fn(),
-    }),
-  };
-});
-
-vi.mock('fs', () => ({
-  default: {
-    existsSync: vi.fn().mockReturnValue(true),
-    mkdirSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    readFileSync: vi.fn().mockReturnValue(JSON.stringify({ xMean: 0, xStd: 1, yMean: 0, yStd: 1, modelType: 'LINEAR_REGRESSION' })),
+vi.stubGlobal('fetch', vi.fn(async (url: string, options: any) => {
+  if (url.endsWith('/train')) {
+    const body = JSON.parse(options.body);
+    const quantities = body.data.map((d: any) => d.quantity);
+    const unique = new Set(quantities);
+    if (unique.size === 1) {
+      return {
+        ok: false,
+        json: async () => ({ detail: 'Insufficient variance in data' })
+      };
+    }
+    return {
+      ok: true,
+      json: async () => ({
+        mae: 10,
+        rmse: 15,
+        r2Score: 0.8,
+        artifactPath: '/tmp/model.joblib'
+      })
+    };
+  }
+  if (url.endsWith('/forecast')) {
+    return {
+      ok: true,
+      json: async () => ({
+        predictions: Array.from({ length: JSON.parse(options.body).horizon }, () => 100)
+      })
+    };
   }
 }));
 
@@ -95,7 +80,7 @@ describe('SalesIntelligenceService Property Tests', () => {
         fc.array(fc.float({ min: 1, max: 1000, noNaN: true }), { minLength: 5, maxLength: 100 }),
         async (quantities) => {
           mPrismaClient.salesRecord.findMany.mockResolvedValue(
-            quantities.map(q => ({ quantity: q }))
+            quantities.map(q => ({ quantity: q, date: new Date() }))
           );
           mPrismaClient.trainedModel.create.mockImplementation(({ data }) => 
             Promise.resolve({ id: 'm1', ...data })
@@ -130,8 +115,8 @@ describe('SalesIntelligenceService Property Tests', () => {
 
   test('Property 13b: Training fails with zero variance data', async () => {
     mPrismaClient.salesRecord.findMany.mockResolvedValue([
-      { quantity: 10 }, { quantity: 10 }, { quantity: 10 }, 
-      { quantity: 10 }, { quantity: 10 }
+      { quantity: 10, date: new Date() }, { quantity: 10, date: new Date() }, { quantity: 10, date: new Date() }, 
+      { quantity: 10, date: new Date() }, { quantity: 10, date: new Date() }
     ]);
 
     await expect(service.trainModel({
@@ -291,8 +276,8 @@ describe('SalesIntelligenceService Property Tests', () => {
 
     for (const type of modelTypes) {
       mPrismaClient.salesRecord.findMany.mockResolvedValue([
-        { quantity: 10 }, { quantity: 20 }, { quantity: 30 }, 
-        { quantity: 40 }, { quantity: 50 }
+        { quantity: 10, date: new Date() }, { quantity: 20, date: new Date() }, { quantity: 30, date: new Date() }, 
+        { quantity: 40, date: new Date() }, { quantity: 50, date: new Date() }
       ]);
       mPrismaClient.trainedModel.create.mockImplementation(({ data }) => 
         Promise.resolve({ id: `m-${type}`, ...data })
@@ -311,7 +296,7 @@ describe('SalesIntelligenceService Property Tests', () => {
 
   test('Property 13c: Training fails with insufficient data', async () => {
     mPrismaClient.salesRecord.findMany.mockResolvedValue([
-      { quantity: 10 }, { quantity: 20 }, { quantity: 30 }
+      { quantity: 10, date: new Date() }, { quantity: 20, date: new Date() }, { quantity: 30, date: new Date() }
     ]);
 
     await expect(service.trainModel({

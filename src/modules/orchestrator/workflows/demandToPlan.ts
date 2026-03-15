@@ -70,6 +70,12 @@ export async function dispatchDemandToPlan(runId: string) {
             const suppliers = await procurementService.findSuppliers(shortage.materialId);
             if (suppliers.length === 0) throw new Error(`No supplier found for material ${shortage.materialId}`);
             
+            // OPTIMIZATION: pick supplier with lowest unitCost, then fastest lead time
+            suppliers.sort((a, b) => {
+              if (a.unitCost !== b.unitCost) return a.unitCost - b.unitCost;
+              return a.leadTimeDays - b.leadTimeDays;
+            });
+
             const bestSupplier = suppliers[0];
             const amount = Math.abs(shortage.deficit);
             
