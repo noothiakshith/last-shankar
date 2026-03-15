@@ -33,7 +33,7 @@ export async function getBudgetSummary(costCenter: string): Promise<Budget> {
 export async function approvePO(poId: string, approvedBy: string, costCenter: string = 'PROCUREMENT'): Promise<void> {
   const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } })
   if (!po) throw new Error('PO not found')
-  if (po.status !== 'PENDING_APPROVAL' && po.status !== 'DRAFT') throw new Error('Invalid PO status for approval')
+  if (po.status !== 'PENDING_APPROVAL') throw new Error('PO must be in PENDING_APPROVAL status for approval')
 
   const isValid = await validateBudget(po.totalCost, costCenter)
   if (!isValid) throw new Error('Insufficient budget for PO')
@@ -59,14 +59,13 @@ export async function approvePO(poId: string, approvedBy: string, costCenter: st
 export async function rejectPO(poId: string, rejectedBy: string): Promise<void> {
   const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } })
   if (!po) throw new Error('PO not found')
-  if (po.status !== 'PENDING_APPROVAL' && po.status !== 'DRAFT') throw new Error('Invalid PO status for rejection')
+  if (po.status !== 'PENDING_APPROVAL') throw new Error('PO must be in PENDING_APPROVAL status for rejection')
 
   await prisma.purchaseOrder.update({
     where: { id: poId },
     data: {
       status: 'REJECTED',
-      approvedBy: rejectedBy, // re-using this field or we could just skip if the schema has no rejectedBy
-      approvedAt: new Date(),
+      // Note: Schema doesn't have rejectedBy field, leaving approvedBy null for rejected POs
     },
   })
 }

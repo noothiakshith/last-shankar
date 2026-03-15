@@ -364,7 +364,8 @@ describe('InventoryService', () => {
       const mockProduct = {
         id: 'product-1',
         sku: 'PROD-001',
-        name: 'Test Product'
+        name: 'Test Product',
+        bomItems: []
       };
 
       const mockFinishedGood = {
@@ -389,7 +390,8 @@ describe('InventoryService', () => {
       const mockProduct = {
         id: 'product-1',
         sku: 'PROD-001',
-        name: 'Test Product'
+        name: 'Test Product',
+        bomItems: []
       };
 
       const mockExistingFinishedGood = {

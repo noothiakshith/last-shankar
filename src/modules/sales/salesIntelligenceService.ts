@@ -55,7 +55,7 @@ export class SalesIntelligenceService {
         r2Score: result.r2Score,
         artifactPath: result.artifactPath,
         isActive: true,
-      } as any // eslint-disable-line @typescript-eslint/no-explicit-any
+      }
     });
 
     return trainedModel;
@@ -89,12 +89,12 @@ export class SalesIntelligenceService {
     const forecast = await prisma.forecastResult.create({
       data: {
         modelId,
-        productId: (modelRecord as unknown as { productId: string }).productId,
-        region: (modelRecord as unknown as { region: string }).region,
+        productId: modelRecord.productId,
+        region: modelRecord.region,
         horizon,
         predictions: result.predictions,
         status: ForecastStatus.DRAFT,
-      } as any // eslint-disable-line @typescript-eslint/no-explicit-any
+      }
     });
 
     return forecast;

@@ -47,12 +47,9 @@ export class ProductionPlanningService {
 
     const predictions = forecast.predictions;
     
-    // For simplicity, we'll assume predictions is an array of quantities for a single product
-    // In a real system, predictions would include product IDs
-    // For now, we'll get the first product from the database
     // Load the specific product associated with this forecast
     const product = await prisma.product.findUnique({
-      where: { id: (forecast as unknown as { productId: string }).productId },
+      where: { id: forecast.productId },
       include: {
         bomItems: {
           include: {
@@ -63,7 +60,7 @@ export class ProductionPlanningService {
     });
  
     if (!product) {
-      throw new Error(`Product ${(forecast as unknown as { productId: string }).productId} not found for forecast ${forecastId}`);
+      throw new Error(`Product ${forecast.productId} not found for forecast ${forecastId}`);
     }
  
     // Create ProductionPlan

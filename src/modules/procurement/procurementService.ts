@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { POStatus } from '@prisma/client';
 import { orchestratorService } from '@/modules/orchestrator/orchestratorService';
 import { inventoryService } from '@/modules/inventory/inventoryService';
+import { recordExpense } from '@/modules/finance/financeService';
 import { ApprovalGateType, Role } from '@prisma/client';
 
 export interface Supplier {
@@ -228,6 +229,25 @@ export class ProcurementService {
       'PO_DELIVERY',
       poId
     );
+
+    const costForDeliveredQty = po.unitCost * receivedQty;
+    await recordExpense({
+      costCenter: 'PROCUREMENT',
+      amount: costForDeliveredQty,
+      description: `Delivery received for PO ${po.id}`,
+      reference: po.id
+    });
+
+    if (typeof process !== 'undefined' && process.nextTick) {
+      process.nextTick(() => {
+        // Find all EXECUTING workflows to wake them up
+        prisma.workflowRun.findMany({ where: { state: 'EXECUTING' } }).then((runs) => {
+          import('@/modules/orchestrator/dispatch').then((m) => {
+            runs.forEach(r => m.dispatchWorkflow(r.id).catch(console.error));
+          });
+        });
+      });
+    }
 
     return updatedPO;
   }

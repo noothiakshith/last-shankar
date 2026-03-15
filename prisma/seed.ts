@@ -1,6 +1,7 @@
 import prisma from '../src/lib/prisma'
 import fs from 'fs'
 import path from 'path'
+import bcrypt from 'bcryptjs'
 
 // ─────────────────────────────────────────────
 // CSV Loader
@@ -223,25 +224,68 @@ async function seedBudgets() {
   console.log(`  ✓ ${budgets.length} Budget records`)
 }
 
+async function seedUsers() {
+  const password = await bcrypt.hash('password', 10);
+  
+  const users = [
+    { id: 'user-admin-01', email: 'admin@nexiserp.com', name: 'Admin User', role: 'ADMIN' as const, department: 'IT', passwordHash: password },
+    { id: 'user-alice-01', email: 'alice@nexiserp.com', name: 'Alice Admin', role: 'ADMIN' as const, department: 'IT', passwordHash: password },
+    { id: 'user-sales-01', email: 'sales@nexiserp.com', name: 'Sales User', role: 'SALES_ANALYST' as const, department: 'Sales', passwordHash: password },
+    { id: 'user-sam-01', email: 'sam@nexiserp.com', name: 'Sam Sales', role: 'SALES_ANALYST' as const, department: 'Sales', passwordHash: password },
+    { id: 'user-prod-01', email: 'paula@nexiserp.com', name: 'Paula Planner', role: 'PRODUCTION_PLANNER' as const, department: 'Production', passwordHash: password },
+    { id: 'user-inv-01', email: 'ivan@nexiserp.com', name: 'Ivan Inventory', role: 'INVENTORY_MANAGER' as const, department: 'Warehouse', passwordHash: password },
+    { id: 'user-proc-01', email: 'oscar@nexiserp.com', name: 'Oscar Procurement', role: 'PROCUREMENT_OFFICER' as const, department: 'Procurement', passwordHash: password },
+    { id: 'user-fin-01', email: 'fiona@nexiserp.com', name: 'Fiona Finance', role: 'FINANCE_MANAGER' as const, department: 'Finance', passwordHash: password },
+    { id: 'user-exec-01', email: 'eve@nexiserp.com', name: 'Eve Executive', role: 'EXECUTIVE' as const, department: 'Executive', passwordHash: password },
+  ];
+
+  for (const u of users) {
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: { name: u.name, role: u.role, department: u.department, passwordHash: u.passwordHash },
+      create: u,
+    });
+  }
+  console.log(`  ✓ ${users.length} User records`);
+}
+
 async function seedEmployees() {
   const employees = [
-    { id: 'emp-admin-01', name: 'Alice Admin', email: 'alice@nexiserp.com', department: 'IT', role: 'ADMIN' },
-    { id: 'emp-sales-01', name: 'Sam Sales', email: 'sam@nexiserp.com', department: 'Sales', role: 'SALES_ANALYST' },
-    { id: 'emp-prod-01', name: 'Paula Planner', email: 'paula@nexiserp.com', department: 'Production', role: 'PRODUCTION_PLANNER' },
-    { id: 'emp-inv-01', name: 'Ivan Inventory', email: 'ivan@nexiserp.com', department: 'Warehouse', role: 'INVENTORY_MANAGER' },
-    { id: 'emp-proc-01', name: 'Oscar Procurement', email: 'oscar@nexiserp.com', department: 'Procurement', role: 'PROCUREMENT_OFFICER' },
-    { id: 'emp-fin-01', name: 'Fiona Finance', email: 'fiona@nexiserp.com', department: 'Finance', role: 'FINANCE_MANAGER' },
-    { id: 'emp-exec-01', name: 'Eve Executive', email: 'eve@nexiserp.com', department: 'Executive', role: 'EXECUTIVE' },
+    { id: 'emp-admin-01', name: 'Alice Admin', email: 'alice@nexiserp.com', department: 'IT', role: 'ADMIN', userId: 'user-alice-01' },
+    { id: 'emp-sales-01', name: 'Sam Sales', email: 'sam@nexiserp.com', department: 'Sales', role: 'SALES_ANALYST', userId: 'user-sam-01' },
+    { id: 'emp-prod-01', name: 'Paula Planner', email: 'paula@nexiserp.com', department: 'Production', role: 'PRODUCTION_PLANNER', userId: 'user-prod-01' },
+    { id: 'emp-inv-01', name: 'Ivan Inventory', email: 'ivan@nexiserp.com', department: 'Warehouse', role: 'INVENTORY_MANAGER', userId: 'user-inv-01' },
+    { id: 'emp-proc-01', name: 'Oscar Procurement', email: 'oscar@nexiserp.com', department: 'Procurement', role: 'PROCUREMENT_OFFICER', userId: 'user-proc-01' },
+    { id: 'emp-fin-01', name: 'Fiona Finance', email: 'fiona@nexiserp.com', department: 'Finance', role: 'FINANCE_MANAGER', userId: 'user-fin-01' },
+    { id: 'emp-exec-01', name: 'Eve Executive', email: 'eve@nexiserp.com', department: 'Executive', role: 'EXECUTIVE', userId: 'user-exec-01' },
   ]
 
   for (const e of employees) {
     await prisma.employee.upsert({
       where: { email: e.email },
-      update: { name: e.name, department: e.department, role: e.role },
+      update: { name: e.name, department: e.department, role: e.role, userId: e.userId },
       create: e,
     })
   }
   console.log(`  ✓ ${employees.length} Employee records`)
+}
+
+async function seedInitialStockLedger() {
+  // Initialize stock ledger with the onHand values from Material seed
+  const initialStock = [
+    { materialId: 'mat-steel-coil', delta: 5000, reason: 'INITIAL_STOCK' },
+    { materialId: 'mat-plastic-resin', delta: 3000, reason: 'INITIAL_STOCK' },
+    { materialId: 'mat-circuit-board', delta: 2000, reason: 'INITIAL_STOCK' },
+    { materialId: 'mat-aluminum-sheet', delta: 4000, reason: 'INITIAL_STOCK' },
+    { materialId: 'mat-rubber-seal', delta: 10000, reason: 'INITIAL_STOCK' },
+  ];
+
+  for (const stock of initialStock) {
+    await prisma.stockLedger.create({
+      data: stock,
+    });
+  }
+  console.log(`  ✓ ${initialStock.length} StockLedger initial entries`);
 }
 
 // ─────────────────────────────────────────────
@@ -261,7 +305,9 @@ async function main() {
   await seedSuppliers()
   await seedSupplierMaterials()
   await seedBudgets()
+  await seedUsers()
   await seedEmployees()
+  await seedInitialStockLedger()
 
   console.log('\n✅ Seed complete.')
 }

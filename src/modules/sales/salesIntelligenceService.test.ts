@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test, expect, vi, describe, beforeEach } from 'vitest';
 import fc from 'fast-check';
 import { ModelType, ForecastStatus } from '@prisma/client';

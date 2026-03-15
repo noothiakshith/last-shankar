@@ -65,7 +65,9 @@ export const StateTransitions: Record<WorkflowState, Partial<Record<WorkflowEven
   },
   [WorkflowState.COMPLETED]: {},
   [WorkflowState.REJECTED]: {},
-  [WorkflowState.FAILED]: {}
+  [WorkflowState.FAILED]: {
+    FAIL: WorkflowState.FAILED
+  }
 };
 
 export function getNextState(currentState: WorkflowState, event: WorkflowEventTrigger): WorkflowState {

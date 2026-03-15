@@ -3,5 +3,6 @@
     "python.analysis.extraPaths": [
         "./python-ml-service/.venv/lib/python3.14/site-packages"
     ],
-    "python.defaultInterpreterPath": "./python-ml-service/.venv/bin/python"
+    "python.defaultInterpreterPath": "./python-ml-service/.venv/bin/python",
+    "typescript.autoClosingTags": false
 }

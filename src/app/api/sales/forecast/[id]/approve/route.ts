@@ -16,7 +16,7 @@ export const POST = withAuth(async (req: NextRequest, token) => {
 
     const forecast = await salesIntelligenceService.approveForecast(
       forecastId,
-      token.email
+      token.email ?? token.sub ?? 'unknown'
     );
     
     return NextResponse.json(forecast);

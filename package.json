@@ -14,7 +14,6 @@
     "@mistralai/mistralai": "^1.15.1",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
-    "@tensorflow/tfjs-node": "^4.22.0",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.36.0",

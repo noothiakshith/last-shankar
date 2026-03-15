@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import prisma from '@/lib/prisma';
 import { orchestratorService } from '../orchestratorService';
 import { salesIntelligenceService as salesService } from '@/modules/sales/salesIntelligenceService';
@@ -62,45 +63,6 @@ export async function dispatchDemandToPlan(runId: string) {
 
         if (shortageReport.shortages && shortageReport.shortages.length > 0) {
           await orchestratorService.advanceState(run.id, 'START_PROCUREMENT');
-          
-          let totalCost = 0;
-          const poIds: string[] = [];
-
-          for (const shortage of shortageReport.shortages) {
-            const suppliers = await procurementService.findSuppliers(shortage.materialId);
-            if (suppliers.length === 0) throw new Error(`No supplier found for material ${shortage.materialId}`);
-            
-            // OPTIMIZATION: pick supplier with lowest unitCost, then fastest lead time
-            suppliers.sort((a, b) => {
-              if (a.unitCost !== b.unitCost) return a.unitCost - b.unitCost;
-              return a.leadTimeDays - b.leadTimeDays;
-            });
-
-            const bestSupplier = suppliers[0];
-            const amount = Math.abs(shortage.deficit);
-            
-            const po = await procurementService.createPurchaseOrder({
-              supplierId: bestSupplier.id,
-              materialId: shortage.materialId,
-              quantity: amount,
-              unitCost: bestSupplier.unitCost
-            });
-            await procurementService.submitPOForApproval(po.id);
-            poIds.push(po.id);
-
-            totalCost += amount * bestSupplier.unitCost;
-          }
-
-          payload.totalPlannedCost = totalCost;
-          payload.poIds = poIds;
-          await prisma.workflowRun.update({
-            where: { id: run.id },
-            data: { payload: payload as unknown as any }
-          });
-
-          await orchestratorService.advanceState(run.id, 'REQUEST_PO_APPROVAL');
-          await orchestratorService.requestApproval(run.id, ApprovalGateType.PO_APPROVAL, Role.FINANCE_MANAGER);
-          
         } else {
           await prisma.productionPlan.update({
             where: { id: plan.id },
@@ -109,6 +71,49 @@ export async function dispatchDemandToPlan(runId: string) {
           await orchestratorService.advanceState(run.id, 'REQUEST_PRODUCTION_AUTH');
           await orchestratorService.requestApproval(run.id, ApprovalGateType.PRODUCTION_AUTHORIZATION, Role.PRODUCTION_PLANNER);
         }
+        break;
+      }
+
+      case WorkflowState.PROCUREMENT: {
+        if (!payload.planId) throw new Error('Missing planId in PROCUREMENT');
+        const planId = payload.planId as string;
+        const shortageReport = await inventoryService.detectShortages(planId);
+
+        let totalCost = 0;
+        const poIds: string[] = [];
+
+        for (const shortage of shortageReport.shortages) {
+          const suppliers = await procurementService.findSuppliers(shortage.materialId);
+          if (suppliers.length === 0) throw new Error(`No supplier found for material ${shortage.materialId}`);
+          
+          suppliers.sort((a, b) => {
+            if (a.unitCost !== b.unitCost) return a.unitCost - b.unitCost;
+            return a.leadTimeDays - b.leadTimeDays;
+          });
+
+          const bestSupplier = suppliers[0];
+          const amount = Math.abs(shortage.deficit);
+          
+          const po = await procurementService.createPurchaseOrder({
+            supplierId: bestSupplier.id,
+            materialId: shortage.materialId,
+            quantity: amount,
+            unitCost: bestSupplier.unitCost
+          });
+          await procurementService.submitPOForApproval(po.id);
+          poIds.push(po.id);
+
+          totalCost += amount * bestSupplier.unitCost;
+        }
+
+        const updatedPayload = { ...payload, totalPlannedCost: totalCost, poIds };
+        await prisma.workflowRun.update({
+          where: { id: run.id },
+          data: { payload: updatedPayload as any }
+        });
+
+        await orchestratorService.advanceState(run.id, 'REQUEST_PO_APPROVAL');
+        await orchestratorService.requestApproval(run.id, ApprovalGateType.PO_APPROVAL, Role.FINANCE_MANAGER);
         break;
       }
 
@@ -141,11 +146,20 @@ export async function dispatchDemandToPlan(runId: string) {
         const planId = payload.planId as string;
 
         const poIds = (payload.poIds as string[]) || [];
+        let allDelivered = true;
         for (const poId of poIds) {
           const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
-          if (po && (po.status === 'APPROVED' || po.status === 'ORDERED')) {
-            await procurementService.confirmDelivery(poId, po.quantity);
+          if (po && po.status !== 'DELIVERED') {
+            allDelivered = false;
+            if (po.status === 'APPROVED') {
+              await prisma.purchaseOrder.update({ where: { id: poId }, data: { status: 'ORDERED' } });
+            }
           }
+        }
+
+        if (!allDelivered) {
+          console.log(`Workflow ${run.id} waiting for POs to be delivered...`);
+          break; // Stay in EXECUTING state until materials arrive
         }
         
         const plan = await prisma.productionPlan.findUnique({ 
@@ -156,9 +170,18 @@ export async function dispatchDemandToPlan(runId: string) {
         if (plan && 'orders' in plan && Array.isArray(plan.orders)) {
           for (const order of plan.orders) {
             await inventoryService.recordFinishedGoods(order.productId, order.requiredQty);
+            await prisma.productionOrder.update({
+              where: { id: order.id },
+              data: { status: 'COMPLETED' }
+            });
           }
         }
         
+        await prisma.productionPlan.update({
+          where: { id: planId },
+          data: { status: 'COMPLETED' }
+        });
+
         await orchestratorService.advanceState(run.id, 'COMPLETE');
         break;
       }
@@ -172,7 +195,10 @@ export async function dispatchDemandToPlan(runId: string) {
     
     // Attempt to fail the workflow but catch any secondary errors (e.g. pending gates)
     try {
-      await orchestratorService.advanceState(runId, 'FAIL', { error: e.message });
+      const currentRun = await prisma.workflowRun.findUnique({ where: { id: runId } });
+      if (currentRun && currentRun.state !== WorkflowState.FAILED && currentRun.state !== WorkflowState.REJECTED) {
+        await orchestratorService.advanceState(runId, 'FAIL', { error: e.message });
+      }
     } catch (failErr) {
       console.error('Failed to set FAIL state because:', failErr);
     }

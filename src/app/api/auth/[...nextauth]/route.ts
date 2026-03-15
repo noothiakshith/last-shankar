@@ -2,6 +2,7 @@ import NextAuth, { type NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { Role } from '@prisma/client'
 
 const authOptions: NextAuthOptions = {
   providers: [
@@ -50,7 +51,7 @@ const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = (user as { id: string; email: string; role: string }).role
+        token.role = (user as { id: string; email: string; role: Role }).role
       }
       return token
     },

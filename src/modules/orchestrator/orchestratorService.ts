@@ -22,6 +22,12 @@ export class OrchestratorService {
       }
     });
 
+    if (typeof process !== 'undefined' && process.nextTick) {
+      process.nextTick(() => {
+        import('./dispatch').then(m => m.dispatchWorkflow(run.id).catch(console.error));
+      });
+    }
+
     return run;
   }
 
@@ -53,6 +59,12 @@ export class OrchestratorService {
           metadata: metadata || Prisma.JsonNull
         }
       });
+
+      if (typeof process !== 'undefined' && process.nextTick) {
+        process.nextTick(() => {
+          import('./dispatch').then(m => m.dispatchWorkflow(runId).catch(console.error));
+        });
+      }
 
       return updatedRun;
     } catch (error) {

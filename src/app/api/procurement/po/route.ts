@@ -6,6 +6,26 @@ import { procurementService } from '@/modules/procurement/procurementService';
 export const dynamic = 'force-dynamic';
 
 /**
+ * GET /api/procurement/po
+ * 
+ * Get all pending purchase orders.
+ * Requires PROCUREMENT_OFFICER or FINANCE_MANAGER role.
+ * 
+ * Requirements: 9.3
+ */
+export async function GET(req: NextRequest) {
+  return withAuth(async () => {
+    try {
+      const pos = await procurementService.getPendingPOs();
+      return NextResponse.json(pos, { status: 200 });
+    } catch (error) {
+      const e = error as Error;
+      return NextResponse.json({ error: e.message }, { status: 500 });
+    }
+  }, [Role.PROCUREMENT_OFFICER, Role.FINANCE_MANAGER, Role.ADMIN])(req);
+}
+
+/**
  * POST /api/procurement/po
  * 
  * Create a new purchase order.

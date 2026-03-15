@@ -189,11 +189,23 @@ export class InventoryService {
   async recordFinishedGoods(productId: string, quantity: number): Promise<void> {
     // Verify product exists
     const product = await prisma.product.findUnique({
-      where: { id: productId }
+      where: { id: productId },
+      include: { bomItems: true }
     });
 
     if (!product) {
       throw new Error(`Product ${productId} not found`);
+    }
+
+    // Deduct consumed raw materials
+    for (const bomItem of product.bomItems) {
+      const consumedQty = bomItem.quantity * quantity;
+      await this.updateStock(
+        bomItem.materialId,
+        -consumedQty,
+        'PRODUCTION_CONSUMPTION',
+        productId
+      );
     }
 
     // Upsert FinishedGood record

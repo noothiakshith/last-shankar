@@ -15,5 +15,5 @@ export async function GET(req: NextRequest) {
       const e = error as Error;
       return NextResponse.json({ error: e.message }, { status: 500 });
     }
-  }, [Role.ADMIN])(req);
+  }, [Role.ADMIN, Role.EXECUTIVE, Role.PRODUCTION_PLANNER, Role.FINANCE_MANAGER])(req);
 }

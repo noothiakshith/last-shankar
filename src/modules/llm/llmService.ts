@@ -64,42 +64,54 @@ export class LLMService {
   }
 
   /**
-   * Explain a forecast result by fetching the result and its model,
-   * then composing a natural language description.
+   * Explain a forecast result or model performance.
+   * If forecastId is provided, explain that specific result.
+   * If it's not found, check if it's a model ID and explain the model's overall health.
    */
-  async explainForecast(forecastId: string): Promise<string> {
-    const forecast = await prisma.forecastResult.findUnique({
-      where: { id: forecastId }
+  async explainForecast(id: string): Promise<string> {
+    let forecast = await prisma.forecastResult.findUnique({
+      where: { id: id }
     });
 
-    if (!forecast) {
-      throw new Error(`Forecast ${forecastId} not found`);
+    let model;
+    if (forecast) {
+      model = await prisma.trainedModel.findUnique({
+        where: { id: forecast.modelId }
+      });
+    } else {
+      // Check if the ID provided is actually a model ID
+      model = await prisma.trainedModel.findUnique({
+        where: { id: id }
+      });
+      if (model) {
+        // Find the latest forecast for this model to give some context
+        forecast = await prisma.forecastResult.findFirst({
+          where: { modelId: model.id },
+          orderBy: { generatedAt: 'desc' }
+        });
+      }
     }
-
-    const model = await prisma.trainedModel.findUnique({
-      where: { id: forecast.modelId }
-    });
 
     if (!model) {
-      throw new Error(`Trained model ${forecast.modelId} not found`);
+      throw new Error(`Model or Forecast with ID ${id} not found`);
     }
 
-    const predictionsStr = typeof forecast.predictions === 'object' 
-      ? JSON.stringify(forecast.predictions) 
-      : String(forecast.predictions);
+    const predictionsStr = forecast 
+      ? (typeof forecast.predictions === 'object' ? JSON.stringify(forecast.predictions) : String(forecast.predictions))
+      : 'No recent predictions available.';
 
-    const compiledData = `Forecast Request for Product ${forecast.productId} in Region ${forecast.region}:\n` +
-      `Horizon: ${forecast.horizon} days\nStatus: ${forecast.status}\n` +
-      `Model Used: ${model.modelType} (MAE: ${model.mae.toFixed(2)}, R²: ${model.r2Score.toFixed(2)})\n` +
-      `Raw Predictions Output: ${predictionsStr}`;
+    const compiledData = `Analysis for Product ${model.productId} in Region ${model.region}:\n` +
+      `Model Type: ${model.modelType}\n` +
+      `Performance Metrics: MAE=${model.mae.toFixed(2)}, R²=${model.r2Score.toFixed(2)}\n` +
+      (forecast ? `Recent Forecast Status: ${forecast.status}\nHorizon: ${forecast.horizon} days\nLatest Predictions: ${predictionsStr}` : `No specific forecast results yet.`);
 
     if (client) {
       try {
         const response = await client.chat.complete({
           model: 'mistral-large-latest',
           messages: [
-            { role: 'system', content: 'You are an analytics assistant serving a sales dashboard. Provide a brief, easy-to-read explanation of forecast results based on structured data.' },
-            { role: 'user', content: `Please interpret this AI sales forecast logic to a business user in a short paragraph:\n\n${compiledData}` }
+            { role: 'system', content: 'You are an analytics assistant serving a sales dashboard. Provide a brief, easy-to-read explanation of AI model performance and forecast results.' },
+            { role: 'user', content: `Please interpret this AI model/forecast data for a business user in a concise paragraph (2-3 sentences):\n\n${compiledData}` }
           ],
         });
         if (response.choices && response.choices.length > 0 && response.choices[0].message.content) {
@@ -107,12 +119,13 @@ export class LLMService {
         }
       } catch (e) {
         console.error("Mistral generation failed in explainForecast:", e);
-        // gracefully fallback through to template
       }
     }
 
     // Template fallback
-    return `[TEMPLATE FALLBACK] ${compiledData}`;
+    return `[ANALYSIS] Product ${model.productId} (${model.region}) using ${model.modelType}. ` +
+           `Accuracy is rated at ${(model.r2Score * 100).toFixed(1)}% with an error margin of ${model.mae.toFixed(2)}. ` +
+           (forecast ? `Latest forecast is currently in ${forecast.status} state.` : `Model is ready for deployment.`);
   }
 }
 
