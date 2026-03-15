@@ -226,25 +226,14 @@ export class ProductionPlanningService {
     });
 
     // Resolve orchestrator approval gate if it exists for this plan
-    const run = await prisma.workflowRun.findFirst({
-      where: {
-        payload: {
-          path: ['planId'],
-          equals: planId
-        }
-      },
-      include: { approvals: true }
-    });
-
-    if (run) {
-      const gate = run.approvals.find(g => 
-        g.gateType === ApprovalGateType.PRODUCTION_AUTHORIZATION && 
-        g.status === ApprovalStatus.PENDING
-      );
-      if (gate) {
-        await orchestratorService.resolveApproval(gate.id, Role.PRODUCTION_PLANNER, authorizedBy, true);
-      }
-    }
+    await orchestratorService.resolveApprovalByPayload(
+      ApprovalGateType.PRODUCTION_AUTHORIZATION,
+      'planId',
+      planId,
+      Role.PRODUCTION_PLANNER,
+      authorizedBy,
+      true
+    );
 
     return updatedPlan;
   }

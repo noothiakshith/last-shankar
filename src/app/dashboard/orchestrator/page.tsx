@@ -23,6 +23,10 @@ interface Workflow {
   createdAt: string;
   events: WorkflowEvent[];
   approvals: WorkflowApproval[];
+  allocatedEmployee?: {
+    name: string;
+    department: string;
+  };
 }
 
 export default function OrchestratorDashboard() {
@@ -212,7 +216,23 @@ export default function OrchestratorDashboard() {
                     </div>
                     
                     {summaries[w.id] ? (
-                      <p style={{ fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>{summaries[w.id]}</p>
+                      <div>
+                        <p style={{ fontSize: '0.9rem', lineHeight: '1.5', margin: '0 0 0.5rem 0' }}>{summaries[w.id]}</p>
+                        {w.allocatedEmployee && (
+                          <div style={{ 
+                            fontSize: '0.8rem', 
+                            padding: '0.5rem', 
+                            background: 'rgba(255,255,255,0.15)', 
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                          }}>
+                            <span>👤</span>
+                            <span>AI Staffing: <strong>{w.allocatedEmployee.name}</strong> from {w.allocatedEmployee.department} assigned.</span>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', margin: 0 }}>

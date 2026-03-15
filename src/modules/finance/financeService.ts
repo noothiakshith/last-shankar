@@ -34,8 +34,10 @@ export async function getBudgetSummary(costCenter: string): Promise<Budget> {
 export async function approvePO(poId: string, approvedBy: string, costCenter: string = 'PROCUREMENT'): Promise<void> {
   const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } })
   if (!po) throw new Error('PO not found')
-  if (po.status !== 'PENDING_APPROVAL') throw new Error('PO must be in PENDING_APPROVAL status for approval')
-
+  
+  // Idempotency check: if already approved, just return
+  if (po.status === 'APPROVED') return;
+  
   const isValid = await validateBudget(po.totalCost, costCenter)
   if (!isValid) throw new Error('Insufficient budget for PO')
 
@@ -57,31 +59,22 @@ export async function approvePO(poId: string, approvedBy: string, costCenter: st
   ])
 
   // Resolve orchestrator approval gate if it exists for this PO
-  const run = await prisma.workflowRun.findFirst({
-    where: {
-      payload: {
-        path: ['poIds'],
-        array_contains: poId as any
-      }
-    },
-    include: { approvals: true }
-  });
-
-  if (run) {
-    const gate = run.approvals.find(g => 
-      g.gateType === ApprovalGateType.PO_APPROVAL && 
-      g.status === ApprovalStatus.PENDING
-    );
-    if (gate) {
-      await orchestratorService.resolveApproval(gate.id, Role.FINANCE_MANAGER, approvedBy, true);
-    }
-  }
+  await orchestratorService.resolveApprovalByPayload(
+    ApprovalGateType.PO_APPROVAL,
+    'poIds',
+    poId,
+    Role.FINANCE_MANAGER,
+    approvedBy,
+    true
+  );
 }
 
 export async function rejectPO(poId: string, rejectedBy: string): Promise<void> {
   const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } })
   if (!po) throw new Error('PO not found')
-  if (po.status !== 'PENDING_APPROVAL') throw new Error('PO must be in PENDING_APPROVAL status for rejection')
+  
+  // Idempotency check
+  if (po.status === 'REJECTED') return;
 
   await prisma.purchaseOrder.update({
     where: { id: poId },
@@ -91,26 +84,16 @@ export async function rejectPO(poId: string, rejectedBy: string): Promise<void> 
   })
 
   // Resolve orchestrator approval gate if it exists for this PO
-  const run = await prisma.workflowRun.findFirst({
-    where: {
-      payload: {
-        path: ['poIds'],
-        array_contains: poId as any
-      }
-    },
-    include: { approvals: true }
-  });
-
-  if (run) {
-    const gate = run.approvals.find(g => 
-      g.gateType === ApprovalGateType.PO_APPROVAL && 
-      g.status === ApprovalStatus.PENDING
-    );
-    if (gate) {
-      await orchestratorService.resolveApproval(gate.id, Role.FINANCE_MANAGER, rejectedBy, false);
-    }
-  }
+  await orchestratorService.resolveApprovalByPayload(
+    ApprovalGateType.PO_APPROVAL,
+    'poIds',
+    poId,
+    Role.FINANCE_MANAGER,
+    rejectedBy,
+    false
+  );
 }
+
 
 export async function recordExpense(expense: { costCenter: string, amount: number, description: string, reference?: string }): Promise<Expense> {
   if (expense.amount <= 0) throw new Error('Expense amount must be positive')

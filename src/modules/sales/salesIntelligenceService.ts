@@ -158,30 +158,21 @@ export class SalesIntelligenceService {
     });
 
     // Resolve orchestrator gate
-    const run = await prisma.workflowRun.findFirst({
-      where: {
-        payload: {
-          path: ['forecastId'],
-          equals: forecastId
-        }
-      },
-      include: { approvals: true }
-    });
-
-    if (run) {
-      const gate = run.approvals.find(g => 
-        g.gateType === ApprovalGateType.FORECAST_APPROVAL && 
-        g.status === ApprovalStatus.PENDING
+    if (orchestratorService.resolveApprovalByPayload) {
+      await orchestratorService.resolveApprovalByPayload(
+        ApprovalGateType.FORECAST_APPROVAL,
+        'forecastId',
+        forecastId,
+        Role.SALES_ANALYST,
+        approvedBy,
+        true
       );
-      if (gate) {
-        await orchestratorService.resolveApproval(gate.id, Role.SALES_ANALYST, approvedBy, true);
-      }
     }
 
     return updatedForecast;
   }
 
-  async rejectForecast(forecastId: string): Promise<ForecastResult> {
+  async rejectForecast(forecastId: string, rejectedBy: string): Promise<ForecastResult> {
     const forecast = await prisma.forecastResult.findUnique({
       where: { id: forecastId }
     });
@@ -190,36 +181,23 @@ export class SalesIntelligenceService {
       throw new Error(`Forecast ${forecastId} not found`);
     }
 
-    if (forecast.status !== ForecastStatus.PENDING_APPROVAL) {
-      throw new Error(`Forecast ${forecastId} is not pending approval. Current status: ${forecast.status}`);
-    }
-
     const updatedForecast = await prisma.forecastResult.update({
       where: { id: forecastId },
       data: {
-        status: ForecastStatus.REJECTED,
+        status: ForecastStatus.REJECTED
       }
     });
 
     // Resolve orchestrator gate
-    const run = await prisma.workflowRun.findFirst({
-      where: {
-        payload: {
-          path: ['forecastId'],
-          equals: forecastId
-        }
-      },
-      include: { approvals: true }
-    });
-
-    if (run) {
-      const gate = run.approvals.find(g => 
-        g.gateType === ApprovalGateType.FORECAST_APPROVAL && 
-        g.status === ApprovalStatus.PENDING
+    if (orchestratorService.resolveApprovalByPayload) {
+      await orchestratorService.resolveApprovalByPayload(
+        ApprovalGateType.FORECAST_APPROVAL,
+        'forecastId',
+        forecastId,
+        Role.SALES_ANALYST,
+        rejectedBy,
+        false
       );
-      if (gate) {
-        await orchestratorService.resolveApproval(gate.id, Role.SALES_ANALYST, 'system', false);
-      }
     }
 
     return updatedForecast;

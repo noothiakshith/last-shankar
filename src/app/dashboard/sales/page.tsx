@@ -123,9 +123,15 @@ export default function SalesDashboard() {
 
   const handleRejectForecast = async (forecastId: string) => {
     try {
-      // In a real app we'd have a reject endpoint, mocking handled state for UI
-      alert('Forecast rejected!');
-      loadForecasts();
+      const response = await fetch(`/api/sales/forecast/${forecastId}/reject`, {
+        method: 'POST'
+      });
+      if (response.ok) {
+        alert('Forecast rejected!');
+        loadForecasts();
+      } else {
+        alert('Failed to reject forecast');
+      }
     } catch (err) {
       alert('Error rejecting forecast');
     }

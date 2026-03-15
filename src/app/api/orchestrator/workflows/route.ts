@@ -28,7 +28,8 @@ export const GET = withAuth(async (req: NextRequest) => {
         },
         approvals: {
           where: { status: 'PENDING' }
-        }
+        },
+        allocatedEmployee: true
       },
       orderBy: { createdAt: 'desc' },
       take: limit
