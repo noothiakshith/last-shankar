@@ -18,6 +18,7 @@ const mockPrisma = vi.hoisted(() => ({
   purchaseOrder: {
     findUnique: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   productionOrder: {
     update: vi.fn(),

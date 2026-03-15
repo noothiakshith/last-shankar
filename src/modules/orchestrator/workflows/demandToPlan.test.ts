@@ -15,6 +15,15 @@ const mockPrismaClient = vi.hoisted(() => ({
     findFirst: vi.fn(),
   },
   productionPlan: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  },
+  purchaseOrder: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  productionOrder: {
     update: vi.fn(),
   }
 }));
