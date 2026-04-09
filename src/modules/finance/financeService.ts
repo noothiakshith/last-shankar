@@ -35,7 +35,17 @@ export async function approvePO(poId: string, approvedBy: string, costCenter: st
   const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } })
   if (!po) throw new Error('PO not found')
   
-  // Idempotency check: if already approved, just return
+  // Resolve orchestrator approval gate if it exists for this PO
+  await orchestratorService.resolveApprovalByPayload(
+    ApprovalGateType.PO_APPROVAL,
+    'poIds',
+    poId,
+    Role.FINANCE_MANAGER,
+    approvedBy,
+    true
+  );
+
+  // If already approved, we've successfully attempted to re-trigger the orchestrator, so return.
   if (po.status === 'APPROVED') return;
   
   const isValid = await validateBudget(po.totalCost, costCenter)
@@ -57,16 +67,6 @@ export async function approvePO(poId: string, approvedBy: string, costCenter: st
       },
     }),
   ])
-
-  // Resolve orchestrator approval gate if it exists for this PO
-  await orchestratorService.resolveApprovalByPayload(
-    ApprovalGateType.PO_APPROVAL,
-    'poIds',
-    poId,
-    Role.FINANCE_MANAGER,
-    approvedBy,
-    true
-  );
 }
 
 export async function rejectPO(poId: string, rejectedBy: string): Promise<void> {

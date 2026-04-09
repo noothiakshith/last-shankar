@@ -45,11 +45,11 @@ export default function ProcurementDashboard() {
     return '#718096';
   };
 
-  const handleSubmitOrder = async (poId: string) => {
+  const handleSubmitForApproval = async (poId: string) => {
     try {
       const response = await fetch(`/api/procurement/po/${poId}/submit`, { method: 'POST' });
       if (response.ok) {
-        alert('Order submitted successfully');
+        alert('Order submitted for approval');
         loadPurchaseOrders();
       } else {
         const data = await response.json();
@@ -60,9 +60,31 @@ export default function ProcurementDashboard() {
     }
   };
 
-  const handleDeliverOrder = async (poId: string) => {
+  const handlePlaceOrder = async (poId: string) => {
     try {
-      const response = await fetch(`/api/procurement/po/${poId}/deliver`, { method: 'POST' });
+      const response = await fetch(`/api/procurement/po/${poId}/place`, { method: 'POST' });
+      if (response.ok) {
+        alert('Order placed successfully');
+        loadPurchaseOrders();
+      } else {
+        const data = await response.json();
+        alert(`Failed to place order: ${data.error}`);
+      }
+    } catch {
+      alert('Error placing order');
+    }
+  };
+
+  const handleDeliverOrder = async (poId: string) => {
+    const po = purchaseOrders.find(p => p.id === poId);
+    if (!po) return;
+    
+    try {
+      const response = await fetch(`/api/procurement/po/${poId}/deliver`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receivedQty: po.quantity })
+      });
       if (response.ok) {
         alert('Order marked as delivered');
         loadPurchaseOrders();
@@ -171,9 +193,26 @@ export default function ProcurementDashboard() {
                         </span>
                       </td>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        {po.status === 'DRAFT' && (
+                          <button
+                            onClick={() => handleSubmitForApproval(po.id)}
+                            style={{
+                              padding: '0.3rem 0.8rem',
+                              background: '#ed8936',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}
+                          >
+                            Submit for Approval
+                          </button>
+                        )}
                         {po.status === 'APPROVED' && (
                           <button
-                            onClick={() => handleSubmitOrder(po.id)}
+                            onClick={() => handlePlaceOrder(po.id)}
                             style={{
                               padding: '0.3rem 0.8rem',
                               background: '#4299e1',
@@ -185,7 +224,7 @@ export default function ProcurementDashboard() {
                               fontWeight: '600'
                             }}
                           >
-                            Submit Order
+                            Place Order
                           </button>
                         )}
                         {po.status === 'ORDERED' && (

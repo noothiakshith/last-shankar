@@ -181,8 +181,9 @@ export class OrchestratorService {
    */
   async resolveApprovalByPayload(gateType: ApprovalGateType, payloadKey: string, payloadValue: any, role: Role, resolverId: string, approved: boolean) {
     if (!(prisma as any).workflowRun) return null; // Defensive check for test mocks
-    // We use findFirst because there might be multiple runs, but we want the active one
-    const run = await prisma.workflowRun.findFirst({
+
+    // First, try strict equality (for strings like planId, forecastId)
+    let run = await prisma.workflowRun.findFirst({
       where: {
         state: { 
           notIn: [WorkflowState.COMPLETED, WorkflowState.FAILED, WorkflowState.REJECTED] 
@@ -194,6 +195,22 @@ export class OrchestratorService {
       },
       include: { approvals: true }
     });
+
+    // If not found, try array containment (for poIds arrays)
+    if (!run) {
+      run = await prisma.workflowRun.findFirst({
+        where: {
+          state: { 
+            notIn: [WorkflowState.COMPLETED, WorkflowState.FAILED, WorkflowState.REJECTED] 
+          },
+          payload: {
+            path: [payloadKey],
+            array_contains: payloadValue
+          }
+        },
+        include: { approvals: true }
+      });
+    }
 
     if (run) {
       const gate = run.approvals.find(g => 

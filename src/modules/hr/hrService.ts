@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { Employee, WorkflowRun, Prisma } from '@prisma/client';
+import { Employee, WorkflowRun, Prisma, WorkflowState } from '@prisma/client';
 import { orchestratorService } from '@/modules/orchestrator/orchestratorService';
 
 export function filterEmployeesByDepartment(employees: Employee[], department?: string | null): Employee[] {
@@ -14,21 +14,42 @@ export class HRService {
     return employee;
   }
 
-  async listEmployeesByDepartment(department?: string | null): Promise<Employee[]> {
-    if (!(prisma as any).employee) return []; // Defensive check for test mocks
-    const allEmployees = await prisma.employee.findMany();
-    return filterEmployeesByDepartment(allEmployees, department);
+  async listEmployeesByDepartment(department?: string | null): Promise<any[]> {
+    if (!(prisma as any).employee) return []; 
+    
+    const employees = await prisma.employee.findMany({
+      where: department ? { department } : {},
+      include: {
+        _count: {
+          select: { 
+            workflowRuns: { 
+              where: { 
+                state: { 
+                  notIn: [WorkflowState.COMPLETED, WorkflowState.FAILED, WorkflowState.REJECTED] 
+                } 
+              } 
+            } 
+          }
+        }
+      }
+    });
+
+    return employees.map(emp => ({
+      ...emp,
+      activeTasks: (emp as any)._count.workflowRuns,
+      status: (emp as any)._count.workflowRuns > 0 ? 'BUSY' : 'AVAILABLE'
+    }));
   }
 
   async allocateToWorkflow(employeeId: string, workflowRunId: string): Promise<WorkflowRun> {
     const employee = await this.getEmployee(employeeId);
     
     if (!(prisma as any).workflowRun) return {} as any; // Defensive check for test mocks
-    const workflow = orchestratorService.getWorkflowStatus 
+    const workflow = typeof orchestratorService.getWorkflowStatus === 'function'
       ? await orchestratorService.getWorkflowStatus(workflowRunId)
       : null;
     
-    if (orchestratorService.getWorkflowStatus && !workflow) throw new Error('Workflow run not found');
+    if (typeof orchestratorService.getWorkflowStatus === 'function' && !workflow) throw new Error('Workflow run not found');
 
     return prisma.workflowRun.update({
       where: { id: workflowRunId },
@@ -47,7 +68,7 @@ export class HRService {
     if (employees.length === 0) return null;
 
     const workloadMap = await Promise.all(employees.map(async (emp) => {
-      const activeTaskCount = orchestratorService.getWorkload 
+      const activeTaskCount = typeof orchestratorService.getWorkload === 'function' 
         ? await orchestratorService.getWorkload(emp.id)
         : 0;
       return { emp, activeTaskCount };

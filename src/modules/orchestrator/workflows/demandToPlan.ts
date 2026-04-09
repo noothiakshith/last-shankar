@@ -21,6 +21,7 @@ export async function dispatchDemandToPlan(runId: string) {
   try {
     switch (run.state) {
       case WorkflowState.INITIATED: {
+        console.log(`[D2P] Step 1: Initializing workflow ${run.id}. Starting Forecasting...`);
         await orchestratorService.advanceState(run.id, 'START_FORECASTING');
         
         let modelId = payload.modelId as string | undefined;
@@ -45,6 +46,17 @@ export async function dispatchDemandToPlan(runId: string) {
 
         await orchestratorService.advanceState(run.id, 'REQUEST_FORECAST_APPROVAL');
         await salesService.submitForecastForApproval(forecast.id, run.id);
+
+        // AI Optimization: Automatically allocate the least busy production staff early
+        try {
+          const optimalStaff = await hrService.getLeastBusyEmployee('Production');
+          if (optimalStaff) {
+            await hrService.allocateToWorkflow(optimalStaff.id, run.id);
+            console.log(`AI Staffing: Allocated ${optimalStaff.name} to workflow ${run.id}`);
+          }
+        } catch (e) {
+          console.error("AI Staffing failed, but continuing workflow:", e);
+        }
         break;
       }
       
@@ -87,8 +99,10 @@ export async function dispatchDemandToPlan(runId: string) {
       }
 
       case WorkflowState.PROCUREMENT: {
-        if (!payload.planId) throw new Error('Missing planId in PROCUREMENT');
-        const planId = payload.planId as string;
+        const planId = payload.planId as string | undefined;
+        if (!planId) throw new Error('Missing planId in PLAN_TO_PRODUCE');
+
+        console.log(`[P2P] Step 2: Running material check for Plan ${planId}...`);
         const shortageReport = await inventoryService.detectShortages(planId);
 
         let totalCost = 0;
@@ -163,15 +177,11 @@ export async function dispatchDemandToPlan(runId: string) {
           const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
           if (po && po.status !== 'DELIVERED') {
             allDelivered = false;
-            // Only move to ORDERED if still in APPROVED to avoid overwriting concurrent DELIVERED status
+            // Transition from APPROVED to ORDERED (simulating vendor contact)
             if (po.status === 'APPROVED') {
-              await prisma.purchaseOrder.updateMany({
-                where: { id: poId, status: 'APPROVED' },
-                data: { status: 'ORDERED' }
-              });
+              console.log(`[D2P] Placing approved PO ${poId}...`);
+              await procurementService.placeOrder(poId);
             }
-          } else if (!po) {
-            // If PO check is skipped (e.g. in tests), don't block
           }
         }
 

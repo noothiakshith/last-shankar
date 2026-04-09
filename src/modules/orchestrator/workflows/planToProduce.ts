@@ -36,18 +36,18 @@ export async function dispatchPlanToProduce(runId: string) {
         if (!plan) throw new Error(`Production plan ${planId} not found`);
         if (plan.orders.length === 0) throw new Error(`Production plan ${planId} has no orders`);
 
-        await orchestratorService.advanceState(run.id, 'START_PLANNING');
-        
         // AI Optimization: Automatically allocate the least busy production staff
         try {
+          console.log(`[P2P] Step 1: Initializing workflow ${run.id}. Triggering AI Staffing...`);
           const optimalStaff = await hrService.getLeastBusyEmployee('Production');
           if (optimalStaff) {
             await hrService.allocateToWorkflow(optimalStaff.id, run.id);
-            console.log(`AI Staffing: Allocated ${optimalStaff.name} to workflow ${run.id}`);
+            console.log(`[P2P] AI Staffing: Allocated ${optimalStaff.name} to workflow ${run.id}`);
           }
         } catch (e) {
-          console.error("AI Staffing failed, but continuing workflow:", e);
+          console.error("[P2P] AI Staffing failed, but continuing workflow:", e);
         }
+        await orchestratorService.advanceState(run.id, 'START_PLANNING');
         break;
       }
 
@@ -55,11 +55,14 @@ export async function dispatchPlanToProduce(runId: string) {
         const planId = payload.planId as string | undefined;
         if (!planId) throw new Error('Missing planId in PLAN_TO_PRODUCE');
 
+        console.log(`[P2P] Step 2: Running material check for Plan ${planId}...`);
         const shortageReport = await inventoryService.detectShortages(planId);
 
         if (shortageReport.shortages && shortageReport.shortages.length > 0) {
+          console.log(`[P2P] Shortages detected: ${shortageReport.shortages.length} items. Moving to PROCUREMENT.`);
           await orchestratorService.advanceState(run.id, 'START_PROCUREMENT');
         } else {
+          console.log(`[P2P] No shortages. Moving to PRODUCTION AUTHORIZATION.`);
           await prisma.productionPlan.update({
             where: { id: planId },
             data: { status: ProductionPlanStatus.PENDING_AUTHORIZATION }
@@ -107,6 +110,7 @@ export async function dispatchPlanToProduce(runId: string) {
           data: { payload: updatedPayload as any }
         });
 
+        console.log(`[P2P] Step 3: Procurement complete. Requested Finance Approval for ${poIds.length} POs. Total Cost: $${totalCost}`);
         await orchestratorService.advanceState(run.id, 'REQUEST_PO_APPROVAL');
         await orchestratorService.requestApproval(run.id, ApprovalGateType.PO_APPROVAL, Role.FINANCE_MANAGER);
         break;
@@ -147,15 +151,11 @@ export async function dispatchPlanToProduce(runId: string) {
           const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
           if (po && po.status !== 'DELIVERED') {
             allDelivered = false;
-            // Only move to ORDERED if still in APPROVED to avoid overwriting concurrent DELIVERED status
+            // Transition from APPROVED to ORDERED (simulating vendor contact)
             if (po.status === 'APPROVED') {
-              await prisma.purchaseOrder.updateMany({
-                where: { id: poId, status: 'APPROVED' },
-                data: { status: 'ORDERED' }
-              });
+              console.log(`[P2P] Placing approved PO ${poId}...`);
+              await procurementService.placeOrder(poId);
             }
-          } else if (!po) {
-            // If PO check is skipped (e.g. in tests), don't block
           }
         }
 

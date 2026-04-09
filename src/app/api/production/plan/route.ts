@@ -15,11 +15,37 @@ export const GET = withAuth(async () => {
   try {
     const plans = await prisma.productionPlan.findMany({
       include: {
-        orders: true
+        orders: true,
       },
       orderBy: { createdAt: 'desc' }
     });
-    return NextResponse.json(plans, { status: 200 });
+
+    // Find active workflow runs for these plans to show in the UI
+    const workflowRuns = await prisma.workflowRun.findMany({
+      where: {
+        state: { notIn: ['COMPLETED', 'FAILED', 'REJECTED'] }
+      },
+      include: {
+        allocatedEmployee: true
+      }
+    });
+
+    const plansWithRuns = plans.map(plan => {
+      const run = workflowRuns.find(r => (r.payload as any)?.planId === plan.id);
+      return {
+        ...plan,
+        activeWorkflowRun: run ? { 
+          id: run.id, 
+          state: run.state,
+          allocatedEmployee: run.allocatedEmployee ? {
+            name: run.allocatedEmployee.name,
+            role: run.allocatedEmployee.role
+          } : null
+        } : null
+      };
+    });
+
+    return NextResponse.json(plansWithRuns, { status: 200 });
   } catch (error) {
     const e = error as Error;
     return NextResponse.json({ error: e.message }, { status: 500 });

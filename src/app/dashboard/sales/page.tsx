@@ -20,12 +20,29 @@ export default function SalesDashboard() {
   const [forecasting, setForecasting] = useState<Record<string, boolean>>({});
   const [selectedModel, setSelectedModel] = useState('LINEAR_REGRESSION');
   const [explanations, setExplanations] = useState<Record<string, string>>({});
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('North');
   const [loadingExplanations, setLoadingExplanations] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    loadProducts();
     loadModels();
     loadForecasts();
   }, []);
+
+  const loadProducts = async () => {
+    try {
+      const response = await fetch('/api/products');
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+        if (data.length > 0) setSelectedProduct(data[0].id);
+      }
+    } catch (err) {
+      console.error('Error loading products:', err);
+    }
+  };
 
   const handleTrain = async () => {
     setTraining(true);
@@ -35,8 +52,8 @@ export default function SalesDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: selectedModel,
-          productId: 'prod-widget-a',
-          region: 'North'
+          productId: selectedProduct,
+          region: selectedRegion
         })
       });
       
@@ -253,6 +270,49 @@ export default function SalesDashboard() {
                 <option value="RANDOM_FOREST">Random Forest</option>
                 <option value="XGBOOST">XGBoost</option>
                 <option value="ARIMA">ARIMA</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#4a5568', fontWeight: '500' }}>
+                Product
+              </label>
+              <select
+                value={selectedProduct}
+                onChange={(e) => setSelectedProduct(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  fontSize: '1rem'
+                }}
+              >
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#4a5568', fontWeight: '500' }}>
+                Region
+              </label>
+              <select
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  fontSize: '1rem'
+                }}
+              >
+                <option value="North">North</option>
+                <option value="South">South</option>
+                <option value="East">East</option>
+                <option value="West">West</option>
               </select>
             </div>
 

@@ -9,7 +9,7 @@ interface Employee {
   name: string;
   role: string;
   department?: string;
-  costCenter?: string;
+  activeTasks: number;
   status: string;
 }
 
@@ -58,8 +58,8 @@ export default function HRDashboard() {
     }
   };
 
-  const activeEmployees = employees.filter(e => e.status === 'ACTIVE');
-  const allocatedEmployees = employees.filter(e => e.costCenter);
+  const activeEmployees = employees.filter(e => e.status === 'AVAILABLE');
+  const busyEmployees = employees.filter(e => e.status === 'BUSY');
 
   return (
     <DashboardLayout>
@@ -86,23 +86,23 @@ export default function HRDashboard() {
             subtitle="All employees"
           />
           <KPICard
-            title="Active"
+            title="Available"
             value={activeEmployees.length}
             icon="✅"
-            subtitle="Currently active"
+            subtitle="Ready for work"
           />
           <KPICard
-            title="Allocated"
-            value={allocatedEmployees.length}
+            title="Assigned"
+            value={busyEmployees.length}
             icon="📍"
-            subtitle="To cost centers"
+            subtitle="Currently working"
           />
           <KPICard
             title="Utilization"
-            value={employees.length > 0 ? `${((allocatedEmployees.length / employees.length) * 100).toFixed(0)}%` : '0%'}
+            value={employees.length > 0 ? `${((busyEmployees.length / employees.length) * 100).toFixed(0)}%` : '0%'}
             icon="📊"
             trend="up"
-            trendValue="+5%"
+            trendValue="+2%"
           />
         </div>
 
@@ -140,7 +140,7 @@ export default function HRDashboard() {
                       Department
                     </th>
                     <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600', color: '#4a5568' }}>
-                      Cost Center
+                      Active Tasks
                     </th>
                     <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600', color: '#4a5568' }}>
                       Status
@@ -163,28 +163,22 @@ export default function HRDashboard() {
                         {employee.department || 'N/A'}
                       </td>
                       <td style={{ padding: '0.75rem' }}>
-                        {employee.costCenter ? (
-                          <span style={{
-                            padding: '0.25rem 0.5rem',
-                            background: '#d1fae5',
-                            color: '#065f46',
-                            borderRadius: '4px',
-                            fontSize: '0.85rem',
-                            fontWeight: '500'
-                          }}>
-                            {employee.costCenter}
-                          </span>
-                        ) : (
-                          <span style={{ color: '#a0aec0', fontSize: '0.85rem' }}>
-                            Not allocated
-                          </span>
-                        )}
+                        <span style={{
+                          padding: '0.25rem 0.5rem',
+                          background: employee.activeTasks > 0 ? '#ebf8ff' : '#f7fafc',
+                          color: employee.activeTasks > 0 ? '#2b6cb0' : '#718096',
+                          borderRadius: '4px',
+                          fontSize: '0.85rem',
+                          fontWeight: '500'
+                        }}>
+                          {employee.activeTasks} Tasks
+                        </span>
                       </td>
                       <td style={{ padding: '0.75rem' }}>
                         <span style={{
                           padding: '0.25rem 0.5rem',
-                          background: employee.status === 'ACTIVE' ? '#d1fae5' : '#fee2e2',
-                          color: employee.status === 'ACTIVE' ? '#065f46' : '#991b1b',
+                          background: employee.status === 'AVAILABLE' ? '#d1fae5' : '#fffaf0',
+                          color: employee.status === 'AVAILABLE' ? '#065f46' : '#9c4221',
                           borderRadius: '4px',
                           fontSize: '0.85rem',
                           fontWeight: '500'

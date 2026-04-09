@@ -210,7 +210,7 @@ export class ProcurementService {
     }
 
     if (po.status !== POStatus.APPROVED && po.status !== POStatus.ORDERED) {
-      throw new Error(`Purchase order ${poId} is not in APPROVED or ORDERED status`);
+      throw new Error(`Purchase order ${poId} is not in APPROVED or ORDERED status. Current status: ${po.status}`);
     }
 
     // Update PO status to DELIVERED
@@ -248,6 +248,33 @@ export class ProcurementService {
         });
       });
     }
+
+    return updatedPO;
+  }
+
+  /**
+   * Place an approved purchase order (move to ORDERED status).
+   * 
+   * Requirements: 9.4
+   */
+  async placeOrder(poId: string): Promise<PurchaseOrder> {
+    const po = await prisma.purchaseOrder.findUnique({
+      where: { id: poId }
+    });
+
+    if (!po) {
+      throw new Error(`Purchase order ${poId} not found`);
+    }
+
+    if (po.status !== POStatus.APPROVED) {
+      throw new Error(`Purchase order ${poId} is not in APPROVED status. Current status: ${po.status}`);
+    }
+
+    // Update PO status to ORDERED
+    const updatedPO = await prisma.purchaseOrder.update({
+      where: { id: poId },
+      data: { status: POStatus.ORDERED }
+    });
 
     return updatedPO;
   }
