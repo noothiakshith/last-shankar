@@ -226,7 +226,7 @@ describe('SalesIntelligenceService Property Tests', () => {
     expect(result.status).toBe(ForecastStatus.REJECTED);
   });
 
-  test('Actuals recording persists correct data', async () => {
+  test('Actuals recording persists correct data and does not retrain if no active model', async () => {
     const actualData = {
       productId: 'p1',
       region: 'r1',
@@ -237,6 +237,8 @@ describe('SalesIntelligenceService Property Tests', () => {
     };
 
     mPrismaClient.salesRecord.create.mockResolvedValue({ id: 'sr1', ...actualData });
+    mPrismaClient.trainedModel.findFirst = vi.fn().mockResolvedValue(null);
+    const trainModelSpy = vi.spyOn(service, 'trainModel');
 
     const result = await service.recordActuals(actualData);
     
@@ -244,6 +246,40 @@ describe('SalesIntelligenceService Property Tests', () => {
       data: actualData
     });
     expect(result.productId).toBe('p1');
+    expect(trainModelSpy).not.toHaveBeenCalled();
+  });
+
+  test('Actuals recording persists data and triggers retrain if active model exists', async () => {
+    const actualData = {
+      productId: 'p1',
+      region: 'r1',
+      date: new Date('2024-01-01'),
+      quantity: 100,
+      revenue: 5000,
+      source: 'ACTUAL'
+    };
+
+    mPrismaClient.salesRecord.create.mockResolvedValue({ id: 'sr1', ...actualData });
+    mPrismaClient.trainedModel.findFirst = vi.fn().mockResolvedValue({
+      id: 'm1',
+      modelType: ModelType.LINEAR_REGRESSION,
+      productId: 'p1',
+      region: 'r1',
+      isActive: true,
+    });
+    const trainModelSpy = vi.spyOn(service, 'trainModel').mockResolvedValue({} as any);
+
+    const result = await service.recordActuals(actualData);
+
+    expect(mPrismaClient.salesRecord.create).toHaveBeenCalledWith({
+      data: actualData
+    });
+    expect(result.productId).toBe('p1');
+    expect(trainModelSpy).toHaveBeenCalledWith({
+      type: ModelType.LINEAR_REGRESSION,
+      productId: 'p1',
+      region: 'r1',
+    });
   });
 
   test('MLOps metrics returns complete model information', async () => {

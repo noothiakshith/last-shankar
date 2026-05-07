@@ -236,7 +236,7 @@ export class SalesIntelligenceService {
   }
 
   async recordActuals(data: { productId: string; region: string; date: Date; quantity: number; revenue: number; source: string }) {
-    return prisma.salesRecord.create({
+    const record = await prisma.salesRecord.create({
       data: {
         productId: data.productId,
         region: data.region,
@@ -246,6 +246,32 @@ export class SalesIntelligenceService {
         source: data.source,
       }
     });
+
+    // MLOps feedback loop: check if we should retrain an active model
+    const activeModel = await prisma.trainedModel.findFirst({
+      where: {
+        productId: data.productId,
+        region: data.region,
+        isActive: true,
+      },
+      orderBy: {
+        trainedAt: 'desc',
+      }
+    });
+
+    if (activeModel) {
+      try {
+        await this.trainModel({
+          type: activeModel.modelType,
+          productId: data.productId,
+          region: data.region,
+        });
+      } catch (err) {
+        console.warn(`Feedback loop: Failed to automatically retrain model for ${data.productId} - ${data.region}`, err);
+      }
+    }
+
+    return record;
   }
 
   async deleteModel(modelId: string): Promise<void> {
