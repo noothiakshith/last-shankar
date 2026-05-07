@@ -54,20 +54,24 @@ def train_model(req: TrainRequest):
     modelType = req.modelType
     model = None
 
+    print(f"Starting training for model type: {modelType}")
+
     if modelType == "LINEAR_REGRESSION":
         model = LinearRegression()
         model.fit(X, y)
     elif modelType == "RANDOM_FOREST":
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
+        model = RandomForestRegressor(n_estimators=100, random_state=42, verbose=2)
         model.fit(X, y)
     elif modelType == "XGBOOST":
         model = xgb.XGBRegressor(n_estimators=100, random_state=42)
-        model.fit(X, y)
+        model.fit(X, y, eval_set=[(X, y)], verbose=True)
     elif modelType == "ARIMA":
         # ARIMA only uses y
         model = ARIMA(y, order=(1, 1, 1)).fit()
     else:
         raise HTTPException(status_code=400, detail=f"Unknown model type: {modelType}")
+
+    print(f"Finished training for model type: {modelType}")
 
     if modelType == "ARIMA":
         predictions = model.predict(start=0, end=len(y)-1)
