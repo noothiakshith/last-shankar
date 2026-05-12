@@ -14,9 +14,7 @@ export async function GET(
         events: {
           orderBy: { occurredAt: 'asc' }
         },
-        approvals: {
-          orderBy: { createdAt: 'asc' }
-        },
+        approvals: true,
         allocatedEmployee: {
           select: {
             id: true,

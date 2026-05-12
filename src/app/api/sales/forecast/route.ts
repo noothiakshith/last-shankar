@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth';
 import { Role } from '@prisma/client';
 import { salesIntelligenceService } from '@/modules/sales/salesIntelligenceService';
+import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,12 @@ export const POST = withAuth(async (req: NextRequest) => {
     const forecast = await salesIntelligenceService.runForecast(modelId, horizon);
     
     console.log('[FORECAST] Forecast generated:', forecast.id);
+    
+    // Update status to PENDING_APPROVAL so it appears in "Pending Forecast Approvals"
+    await prisma.forecastResult.update({
+      where: { id: forecast.id },
+      data: { status: 'PENDING_APPROVAL' }
+    });
     
     return NextResponse.json({ forecast }, { status: 201 });
   } catch (error) {

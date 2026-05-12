@@ -60,15 +60,17 @@ export async function POST(
 
         // Step 2: Auto-approve if requested (for demo flow)
         if (autoApprove) {
-          // Update status to PENDING_APPROVAL first
-          const updatedForecast = await prisma.forecastResult.update({
-            where: { id: forecast.id },
-            data: { status: 'PENDING_APPROVAL' }
-          });
-          
-          // Verify the update succeeded before approving
-          if (updatedForecast.status === 'PENDING_APPROVAL') {
+          try {
+            // First: DRAFT → PENDING_APPROVAL
+            await prisma.forecastResult.update({
+              where: { id: forecast.id },
+              data: { status: 'PENDING_APPROVAL' }
+            });
+            
+            // Then: PENDING_APPROVAL → APPROVED
             await salesIntelligenceService.approveForecast(forecast.id, 'csv-upload-wizard');
+          } catch (approveErr) {
+            console.warn(`Auto-approve failed for forecast ${forecast.id}:`, approveErr);
           }
         }
 

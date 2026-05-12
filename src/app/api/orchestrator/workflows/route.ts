@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/auth';
-import { Role } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -9,9 +7,9 @@ export const dynamic = 'force-dynamic';
  * GET /api/orchestrator/workflows
  * 
  * Get all workflow runs with their events and approvals.
- * Requires authenticated user.
+ * No authentication required for demo purposes.
  */
-export const GET = withAuth(async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -40,12 +38,4 @@ export const GET = withAuth(async (req: NextRequest) => {
     const e = error as Error;
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
-}, [
-  Role.EXECUTIVE,
-  Role.FINANCE_MANAGER,
-  Role.INVENTORY_MANAGER,
-  Role.PROCUREMENT_OFFICER,
-  Role.PRODUCTION_PLANNER,
-  Role.SALES_ANALYST,
-  Role.ADMIN
-]);
+}

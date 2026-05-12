@@ -61,6 +61,7 @@ model WorkflowRun {
   allocatedEmployeeId String?
   approvals           ApprovalGate[]
   events              WorkflowEvent[]
+  purchaseOrders      PurchaseOrder[]
   allocatedEmployee   Employee?       @relation(fields: [allocatedEmployeeId], references: [id])
 }
 
@@ -233,18 +234,20 @@ model SupplierMaterial {
 }
 
 model PurchaseOrder {
-  id          String    @id @default(cuid())
-  supplierId  String
-  materialId  String
-  quantity    Float
-  unitCost    Float
-  totalCost   Float
-  status      POStatus  @default(DRAFT)
-  createdAt   DateTime  @default(now())
-  approvedBy  String?
-  approvedAt  DateTime?
-  deliveredAt DateTime?
-  supplier    Supplier  @relation(fields: [supplierId], references: [id])
+  id             String       @id @default(cuid())
+  supplierId     String
+  materialId     String
+  quantity       Float
+  unitCost       Float
+  totalCost      Float
+  status         POStatus     @default(DRAFT)
+  createdAt      DateTime     @default(now())
+  approvedBy     String?
+  approvedAt     DateTime?
+  deliveredAt    DateTime?
+  workflowRunId  String?
+  supplier       Supplier     @relation(fields: [supplierId], references: [id])
+  workflowRun    WorkflowRun? @relation(fields: [workflowRunId], references: [id])
 }
 
 model Budget {
