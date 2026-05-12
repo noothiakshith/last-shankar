@@ -99,16 +99,39 @@ model SalesRecord {
 }
 
 model TrainedModel {
-  id           String    @id @default(cuid())
-  modelType    ModelType
-  trainedAt    DateTime  @default(now())
-  mae          Float
-  rmse         Float
-  r2Score      Float
-  artifactPath String
-  isActive     Boolean   @default(false)
-  productId    String
-  region       String
+  id               String    @id @default(cuid())
+  modelType        ModelType
+  trainedAt        DateTime  @default(now())
+  mae              Float
+  rmse             Float
+  r2Score          Float
+  artifactPath     String
+  isActive         Boolean   @default(false)
+  productId        String
+  region           String
+  retrainThreshold Float     @default(0.3)
+  lastRetrainedAt  DateTime?
+  version          Int       @default(1)
+}
+
+model PredictionLog {
+  id               String    @id @default(cuid())
+  forecastId       String
+  modelId          String
+  productId        String
+  region           String
+  predictionDate   DateTime
+  predictedQty     Float
+  actualQty        Float?
+  error            Float?
+  absError         Float?
+  squaredError     Float?
+  loggedAt         DateTime  @default(now())
+  actualRecordedAt DateTime?
+
+  @@index([modelId])
+  @@index([forecastId])
+  @@index([productId, region, predictionDate])
 }
 
 model ForecastResult {
@@ -330,4 +353,32 @@ enum POStatus {
   ORDERED
   DELIVERED
   REJECTED
+}
+
+model UploadSession {
+  id            String             @id @default(cuid())
+  fileName      String
+  totalRows     Int
+  uploadedBy    String
+  uploadedAt    DateTime           @default(now())
+  status        UploadStatus       @default(STAGED)
+  columnMapping Json?
+  stagedRecords StagedSaleRecord[]
+}
+
+model StagedSaleRecord {
+  id        String        @id @default(cuid())
+  sessionId String
+  rowIndex  Int
+  rawData   Json
+  session   UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+enum UploadStatus {
+  STAGED
+  MAPPING_CONFIRMED
+  IMPORTED
+  FAILED
 }

@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { ModelType, ForecastStatus, TrainedModel, ForecastResult, Role, ApprovalGateType, ApprovalStatus } from '@prisma/client';
 import { orchestratorService } from '@/modules/orchestrator/orchestratorService';
+import { feedbackService } from '@/modules/sales/feedbackService';
 
 export interface ModelConfig {
   type: ModelType;
@@ -12,6 +13,9 @@ const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:8
 
 export class SalesIntelligenceService {
   async trainModel(config: ModelConfig): Promise<TrainedModel> {
+    console.log('[SERVICE] PYTHON_SERVICE_URL:', PYTHON_SERVICE_URL);
+    console.log('[SERVICE] Training config:', config);
+    
     const salesData = await prisma.salesRecord.findMany({
       where: {
         productId: config.productId,
@@ -20,10 +24,13 @@ export class SalesIntelligenceService {
       orderBy: { date: 'asc' },
     });
 
+    console.log('[SERVICE] Found sales data records:', salesData.length);
+
     if (salesData.length < 5) {
       throw new Error(`Insufficient data for training: found ${salesData.length} records, need at least 5.`);
     }
 
+    console.log('[SERVICE] Calling ML service at:', `${PYTHON_SERVICE_URL}/train`);
     const response = await fetch(`${PYTHON_SERVICE_URL}/train`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -103,6 +110,27 @@ export class SalesIntelligenceService {
         status: ForecastStatus.DRAFT,
       }
     });
+
+    // Record prediction logs for feedback loop
+    const today = new Date();
+    const predictionEntries = result.predictions.map((qty: number, index: number) => {
+      const predictionDate = new Date(today);
+      predictionDate.setDate(today.getDate() + index + 1); // Predictions start from tomorrow
+      return {
+        predictionDate,
+        predictedQty: qty
+      };
+    });
+
+    await feedbackService.recordPredictionLog(
+      forecast.id,
+      modelId,
+      modelRecord.productId,
+      modelRecord.region,
+      predictionEntries
+    );
+
+    console.log(`[FORECAST] Recorded ${predictionEntries.length} prediction logs for feedback tracking`);
 
     return forecast;
   }

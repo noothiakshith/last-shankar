@@ -66,6 +66,7 @@ export const StateTransitions: Record<WorkflowState, Partial<Record<WorkflowEven
   [WorkflowState.COMPLETED]: {},
   [WorkflowState.REJECTED]: {},
   [WorkflowState.FAILED]: {
+    RETRY: WorkflowState.INITIATED,
     FAIL: WorkflowState.FAILED
   }
 };

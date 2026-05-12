@@ -22,7 +22,7 @@ export default function SalesDashboard() {
   const [explanations, setExplanations] = useState<Record<string, string>>({});
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState('');
-  const [selectedRegion, setSelectedRegion] = useState('North');
+  const [selectedRegion, setSelectedRegion] = useState('North America');
   const [loadingExplanations, setLoadingExplanations] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -309,10 +309,12 @@ export default function SalesDashboard() {
                   fontSize: '1rem'
                 }}
               >
-                <option value="North">North</option>
-                <option value="South">South</option>
-                <option value="East">East</option>
-                <option value="West">West</option>
+                <option value="North America">North America</option>
+                <option value="South America">South America</option>
+                <option value="Europe">Europe</option>
+                <option value="Asia Pacific">Asia Pacific</option>
+                <option value="Middle East">Middle East</option>
+                <option value="Africa">Africa</option>
               </select>
             </div>
 

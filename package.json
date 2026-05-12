@@ -4,14 +4,21 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:ml": "cd python-ml-service && source .venv/bin/activate && python3 main.py",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:ml\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:all": "vitest run --no-file-parallelism"
+    "test:all": "vitest run --no-file-parallelism",
+    "docker:up": "docker-compose up -d db ml-engine",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:rebuild": "docker-compose build --no-cache ml-engine && docker-compose up -d ml-engine",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force",
+    "setup": "npm run docker:up && sleep 5 && npm run db:migrate && npm run db:seed",
+    "start:all": "npm run docker:up && sleep 5 && npm run dev"
   },
   "dependencies": {
     "@mistralai/mistralai": "^1.15.1",

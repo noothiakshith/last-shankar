@@ -196,20 +196,23 @@ export class OrchestratorService {
       include: { approvals: true }
     });
 
-    // If not found, try array containment (for poIds arrays)
+    // If not found, try manual array search (Prisma doesn't support array_contains on JSON)
     if (!run) {
-      run = await prisma.workflowRun.findFirst({
+      const allRuns = await prisma.workflowRun.findMany({
         where: {
           state: { 
             notIn: [WorkflowState.COMPLETED, WorkflowState.FAILED, WorkflowState.REJECTED] 
-          },
-          payload: {
-            path: [payloadKey],
-            array_contains: payloadValue
           }
         },
         include: { approvals: true }
       });
+
+      // Manually check if payload contains the value in an array
+      run = allRuns.find(r => {
+        const payload = r.payload as Record<string, any>;
+        const value = payload[payloadKey];
+        return Array.isArray(value) && value.includes(payloadValue);
+      }) || null;
     }
 
     if (run) {

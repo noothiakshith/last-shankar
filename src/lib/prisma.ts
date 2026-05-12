@@ -6,14 +6,28 @@ const prismaClientSingleton = () => {
   const connectionString = process.env.DATABASE_URL
   if (!connectionString) {
     if (process.env.NODE_ENV === 'test') {
-      // In tests, return a proxy that handles missing models
+      // In tests, return a proxy that returns empty results instead of null
       return new Proxy({} as any, {
         get: (target, prop) => {
-          return new Proxy({}, {
-            get: () => {
-              const fn = (...args: any[]) => Promise.resolve(null);
-              return fn;
+          // Return a function that returns an empty array or object
+          const fn = (...args: any[]) => {
+            // For methods like findMany, findUnique, etc., return appropriate empty values
+            const propStr = String(prop);
+            if (propStr.includes('findMany') || propStr.includes('find')) {
+              return Promise.resolve([]);
             }
+            if (propStr.includes('create') || propStr.includes('update') || propStr.includes('delete')) {
+              return Promise.resolve({ id: 'mock-id', ...args[0]?.data });
+            }
+            if (propStr.includes('count')) {
+              return Promise.resolve(0);
+            }
+            return Promise.resolve(null);
+          };
+          
+          // Return a nested proxy that returns functions
+          return new Proxy({}, {
+            get: () => fn
           });
         }
       }) as unknown as PrismaClient;
