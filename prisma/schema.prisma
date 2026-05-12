@@ -356,14 +356,20 @@ enum POStatus {
 }
 
 model UploadSession {
-  id            String             @id @default(cuid())
-  fileName      String
-  totalRows     Int
-  uploadedBy    String
-  uploadedAt    DateTime           @default(now())
-  status        UploadStatus       @default(STAGED)
-  columnMapping Json?
-  stagedRecords StagedSaleRecord[]
+  id                 String             @id @default(cuid())
+  fileName           String
+  totalRows          Int
+  uploadedBy         String
+  uploadedAt         DateTime           @default(now())
+  status             UploadStatus       @default(STAGED)
+  columnMapping      Json?
+  profileData        Json?
+  llmSummary         String?
+  llmRecommendations Json?
+  selectedProducts   Json?
+  trainedModelIds    Json?
+  forecastResults    Json?
+  stagedRecords      StagedSaleRecord[]
 }
 
 model StagedSaleRecord {
@@ -379,6 +385,12 @@ model StagedSaleRecord {
 enum UploadStatus {
   STAGED
   MAPPING_CONFIRMED
+  ANALYZING
+  ANALYZED
+  PRODUCTS_SELECTED
+  TRAINING
+  TRAINED
+  COMPLETED
   IMPORTED
   FAILED
 }
