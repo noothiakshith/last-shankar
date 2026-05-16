@@ -18,7 +18,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       router.push('/login');
     } else if (status === 'authenticated' && session?.user?.role) {
       const currentMenuItem = [
-        { path: '/dashboard/orchestrator', roles: ['ADMIN', 'EXECUTIVE'] },
+        { path: '/dashboard/orchestrator', roles: ['ALL'] },
         { path: '/dashboard/sales', roles: ['ADMIN', 'SALES_ANALYST'] },
         { path: '/dashboard/production', roles: ['ADMIN', 'PRODUCTION_PLANNER'] },
         { path: '/dashboard/inventory', roles: ['ADMIN', 'INVENTORY_MANAGER', 'PRODUCTION_PLANNER', 'PROCUREMENT_OFFICER'] },
@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { path: '/dashboard/hr', roles: ['ADMIN', 'EXECUTIVE'] },
       ].find(item => pathname === item.path || pathname.startsWith(item.path + '/'));
 
-      if (currentMenuItem && !currentMenuItem.roles.includes(session.user.role)) {
+      if (currentMenuItem && !currentMenuItem.roles.includes('ALL') && !currentMenuItem.roles.includes(session.user.role)) {
         router.push('/dashboard');
       }
     }
@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const menuItems = [
     { path: '/dashboard', label: 'Overview', icon: '📊', roles: ['ALL'] },
-    { path: '/dashboard/orchestrator', label: 'Orchestrator', icon: '🎯', roles: ['ADMIN', 'EXECUTIVE'] },
+    { path: '/dashboard/orchestrator', label: 'Pipeline Board', icon: '🎯', roles: ['ALL'] },
     { path: '/dashboard/sales', label: 'Sales Intelligence', icon: '📈', roles: ['ADMIN', 'SALES_ANALYST'] },
     { path: '/dashboard/production', label: 'Production', icon: '🏭', roles: ['ADMIN', 'PRODUCTION_PLANNER'] },
     { path: '/dashboard/inventory', label: 'Inventory', icon: '📦', roles: ['ADMIN', 'INVENTORY_MANAGER', 'PRODUCTION_PLANNER', 'PROCUREMENT_OFFICER'] },

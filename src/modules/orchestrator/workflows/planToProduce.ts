@@ -97,9 +97,9 @@ export async function dispatchPlanToProduce(runId: string) {
             supplierId: bestSupplier.id,
             materialId: shortage.materialId,
             quantity: amount,
-            unitCost: bestSupplier.unitCost
+            unitCost: bestSupplier.unitCost,
+            workflowRunId: run.id
           });
-          await procurementService.submitPOForApproval(po.id);
           poIds.push(po.id);
           totalCost += amount * bestSupplier.unitCost;
         }

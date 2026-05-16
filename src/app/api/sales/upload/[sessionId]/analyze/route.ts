@@ -54,7 +54,7 @@ export async function POST(
     const dateCol = mapping.date || 'date';
     const qtyCol = mapping.quantity || 'quantity';
     const revCol = mapping.revenue || 'revenue';
-    const prodCol = mapping.product || 'productId';
+    const prodCol = mapping.product || 'product_name';
     const regionCol = mapping.region || 'region';
 
     // Data quality metrics

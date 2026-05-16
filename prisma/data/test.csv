@@ -1,0 +1,32 @@
+date,product_name,category,region,quantity,revenue
+2023-02-01,Widget A,Electronics,North,24,720.00
+2023-02-01,Widget B,Electronics,South,18,1260.00
+2023-02-02,Gadget C,Accessories,East,20,900.00
+2023-02-02,Device D,Furniture,West,12,2400.00
+2023-02-03,Module E,Electronics,North,15,1350.00
+2023-02-03,Unit F,Home & Kitchen,South,30,450.00
+2023-02-06,Widget A,Home & Kitchen,East,22,1100.00
+2023-02-06,Widget B,Fashion,West,14,1960.00
+2023-02-07,Gadget C,Accessories,North,28,560.00
+2023-02-07,Device D,Home Appliances,South,10,2500.00
+2023-02-08,Module E,Electronics,East,16,1920.00
+2023-02-08,Unit F,Stationery,West,35,700.00
+2023-02-09,Widget A,Electronics,North,9,3150.00
+2023-02-09,Widget B,Fitness,South,20,800.00
+2023-02-10,Gadget C,Electronics,East,13,1690.00
+2023-02-10,Device D,Home Appliances,West,17,1530.00
+2023-02-13,Module E,Accessories,North,25,875.00
+2023-02-13,Unit F,Home Appliances,South,11,2860.00
+2023-02-14,Widget A,Electronics,East,8,2800.00
+2023-02-14,Widget B,Fitness,West,19,2280.00
+2023-02-15,Gadget C,Home & Kitchen,North,27,675.00
+2023-02-15,Device D,Office Supplies,South,21,945.00
+2023-02-16,Module E,Electronics,East,18,1440.00
+2023-02-16,Unit F,Furniture,West,7,2100.00
+2023-02-17,Widget A,Electronics,North,10,3500.00
+2023-02-17,Widget B,Home & Kitchen,South,9,1620.00
+2023-02-20,Gadget C,Electronics,East,6,2700.00
+2023-02-20,Device D,Furniture,West,5,3250.00
+2023-02-21,Module E,Electronics,North,11,3300.00
+2023-02-21,Unit F,Fitness,South,26,520.00
+

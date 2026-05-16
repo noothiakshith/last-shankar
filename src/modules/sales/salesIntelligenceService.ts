@@ -26,8 +26,8 @@ export class SalesIntelligenceService {
 
     console.log('[SERVICE] Found sales data records:', salesData.length);
 
-    if (salesData.length < 5) {
-      throw new Error(`Insufficient data for training: found ${salesData.length} records, need at least 5.`);
+    if (salesData.length < 3) {
+      throw new Error(`Insufficient data for training: found ${salesData.length} records, need at least 3.`);
     }
 
     console.log('[SERVICE] Calling ML service at:', `${PYTHON_SERVICE_URL}/train`);

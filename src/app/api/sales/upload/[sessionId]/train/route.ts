@@ -74,8 +74,8 @@ export async function POST(
       // Try to find the product column by checking common names
       const firstRecord = session.stagedRecords[0];
       const rawData = firstRecord?.rawData as Record<string, string>;
-      const possibleProductColumns = ['productId', 'product_id', 'Product_ID', 'product', 'Product', 'sku', 'SKU', 'item_id', 'itemId'];
-      let productColumn = 'productId'; // default
+      const possibleProductColumns = ['product_name', 'productName', 'productId', 'product_id', 'Product_ID', 'product', 'Product', 'sku', 'SKU', 'item_id', 'itemId'];
+      let productColumn = 'product_name'; // default
       
       if (rawData) {
         for (const col of possibleProductColumns) {
@@ -107,22 +107,23 @@ export async function POST(
           continue;
         }
 
-        // Step 1.5: Look up the actual product by SKU (CSV uses SKU, DB uses ID)
-        const product = await prisma.product.findFirst({
-          where: { sku: productId }
+        // Step 1.5: Look up the actual product by SKU or Name (CSV might use Name or SKU, DB uses ID)
+        let product = await prisma.product.findFirst({
+          where: {
+            OR: [
+              { sku: productId },
+              { name: productId }
+            ]
+          }
         });
 
         if (!product) {
-          results.push({
-            productId,
-            region,
-            modelType,
-            dataPoints: stagedRecords.length,
-            trainingTime: '0s',
-            status: 'FAILED',
-            error: `Product with SKU ${productId} not found in database. Please ensure products exist before training.`,
+          product = await prisma.product.create({
+            data: {
+              sku: `SKU-${productId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 8)}-${Math.floor(Math.random() * 1000)}`,
+              name: productId
+            }
           });
-          continue;
         }
 
         const actualProductId = product.id;

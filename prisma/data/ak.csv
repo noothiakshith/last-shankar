@@ -1,0 +1,13 @@
+date,product_name,category,region,quantity,revenue
+2024-01-01,Organic Cotton,Textiles,North,50,500.00
+2024-01-01,Recycled Polyester,Textiles,South,30,450.00
+2024-01-02,Eco-Dye Blue,Chemicals,East,20,200.00
+2024-01-02,Bamboo Fiber,Textiles,West,40,600.00
+2024-01-03,Organic Cotton,Textiles,North,55,550.00
+2024-01-03,Recycled Polyester,Textiles,South,35,525.00
+2024-01-04,Eco-Dye Blue,Chemicals,East,25,250.00
+2024-01-04,Bamboo Fiber,Textiles,West,45,675.00
+2024-01-05,Organic Cotton,Textiles,North,60,600.00
+2024-01-05,Recycled Polyester,Textiles,South,40,600.00
+2024-01-06,Eco-Dye Blue,Chemicals,East,30,300.00
+2024-01-06,Bamboo Fiber,Textiles,West,50,750.00

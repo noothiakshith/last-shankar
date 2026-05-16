@@ -773,7 +773,7 @@ export default function SalesDashboard() {
                         <thead>
                           <tr style={{ background: '#f7fafc' }}>
                             <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', fontWeight: '600', color: '#4a5568' }}>Rank</th>
-                            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', fontWeight: '600', color: '#4a5568' }}>Product ID</th>
+                            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', fontWeight: '600', color: '#4a5568' }}>Product</th>
                             <th style={{ padding: '0.75rem', textAlign: 'right', borderBottom: '1px solid #e2e8f0', fontWeight: '600', color: '#4a5568' }}>Total Quantity</th>
                             <th style={{ padding: '0.75rem', textAlign: 'right', borderBottom: '1px solid #e2e8f0', fontWeight: '600', color: '#4a5568' }}>Total Revenue</th>
                             <th style={{ padding: '0.75rem', textAlign: 'right', borderBottom: '1px solid #e2e8f0', fontWeight: '600', color: '#4a5568' }}>Impact Score</th>

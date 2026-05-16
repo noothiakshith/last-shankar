@@ -17,6 +17,7 @@ export interface CreatePOInput {
   materialId: string;
   quantity: number;
   unitCost: number;
+  workflowRunId?: string;
 }
 
 export interface PurchaseOrder {
@@ -109,7 +110,7 @@ export class ProcurementService {
     // Compute total cost
     const totalCost = po.quantity * po.unitCost;
 
-    // Create PO with DRAFT status
+    // Create PO with PENDING_APPROVAL status
     const purchaseOrder = await prisma.purchaseOrder.create({
       data: {
         supplierId: po.supplierId,
@@ -117,7 +118,8 @@ export class ProcurementService {
         quantity: po.quantity,
         unitCost: po.unitCost,
         totalCost,
-        status: POStatus.DRAFT
+        status: POStatus.PENDING_APPROVAL,
+        workflowRunId: po.workflowRunId || null
       }
     });
 

@@ -134,15 +134,78 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div style={{ marginTop: '2rem', padding: '1rem', background: '#f7fafc', borderRadius: '6px' }}>
-          <p style={{ fontSize: '0.85rem', color: '#718096', marginBottom: '0.5rem', fontWeight: '600' }}>
-            Demo Accounts:
+        <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#f7fafc', borderRadius: '8px', maxHeight: '320px', overflowY: 'auto' }}>
+          <p style={{ fontSize: '0.9rem', color: '#2d3748', marginBottom: '1rem', fontWeight: '600', textAlign: 'center' }}>
+            🔐 Demo Accounts by Role
           </p>
-          <p style={{ fontSize: '0.8rem', color: '#4a5568', margin: '0.25rem 0' }}>
-            admin@nexiserp.com / password
-          </p>
-          <p style={{ fontSize: '0.8rem', color: '#4a5568', margin: '0.25rem 0' }}>
-            sales@nexiserp.com / password
+          
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <div style={{ padding: '0.75rem', background: 'white', borderRadius: '6px', borderLeft: '3px solid #667eea' }}>
+              <div style={{ fontSize: '0.75rem', color: '#667eea', fontWeight: '600', marginBottom: '0.25rem' }}>
+                👑 ADMIN
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#4a5568', fontFamily: 'monospace' }}>
+                admin@nexiserp.com / password
+              </div>
+            </div>
+
+            <div style={{ padding: '0.75rem', background: 'white', borderRadius: '6px', borderLeft: '3px solid #48bb78' }}>
+              <div style={{ fontSize: '0.75rem', color: '#48bb78', fontWeight: '600', marginBottom: '0.25rem' }}>
+                📊 SALES ANALYST
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#4a5568', fontFamily: 'monospace' }}>
+                sales@nexiserp.com / password
+              </div>
+            </div>
+
+            <div style={{ padding: '0.75rem', background: 'white', borderRadius: '6px', borderLeft: '3px solid #ed8936' }}>
+              <div style={{ fontSize: '0.75rem', color: '#ed8936', fontWeight: '600', marginBottom: '0.25rem' }}>
+                🏭 PRODUCTION PLANNER
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#4a5568', fontFamily: 'monospace' }}>
+                paula@nexiserp.com / password
+              </div>
+            </div>
+
+            <div style={{ padding: '0.75rem', background: 'white', borderRadius: '6px', borderLeft: '3px solid #9f7aea' }}>
+              <div style={{ fontSize: '0.75rem', color: '#9f7aea', fontWeight: '600', marginBottom: '0.25rem' }}>
+                📦 INVENTORY MANAGER
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#4a5568', fontFamily: 'monospace' }}>
+                ivan@nexiserp.com / password
+              </div>
+            </div>
+
+            <div style={{ padding: '0.75rem', background: 'white', borderRadius: '6px', borderLeft: '3px solid #38b2ac' }}>
+              <div style={{ fontSize: '0.75rem', color: '#38b2ac', fontWeight: '600', marginBottom: '0.25rem' }}>
+                🛒 PROCUREMENT OFFICER
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#4a5568', fontFamily: 'monospace' }}>
+                oscar@nexiserp.com / password
+              </div>
+            </div>
+
+            <div style={{ padding: '0.75rem', background: 'white', borderRadius: '6px', borderLeft: '3px solid #f56565' }}>
+              <div style={{ fontSize: '0.75rem', color: '#f56565', fontWeight: '600', marginBottom: '0.25rem' }}>
+                💰 FINANCE MANAGER
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#4a5568', fontFamily: 'monospace' }}>
+                fiona@nexiserp.com / password
+              </div>
+            </div>
+
+            <div style={{ padding: '0.75rem', background: 'white', borderRadius: '6px', borderLeft: '3px solid #805ad5' }}>
+              <div style={{ fontSize: '0.75rem', color: '#805ad5', fontWeight: '600', marginBottom: '0.25rem' }}>
+                👔 EXECUTIVE
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#4a5568', fontFamily: 'monospace' }}>
+                eve@nexiserp.com / password
+              </div>
+            </div>
+          </div>
+
+          <p style={{ fontSize: '0.75rem', color: '#718096', marginTop: '1rem', textAlign: 'center', fontStyle: 'italic' }}>
+            All passwords are "password" for demo purposes
           </p>
         </div>
       </div>

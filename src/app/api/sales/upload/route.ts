@@ -24,7 +24,7 @@ function detectColumnMapping(headers: string[]): ColumnMapping {
   const dateKeywords = ['date', 'time', 'day', 'month', 'year', 'period', 'timestamp'];
   const quantityKeywords = ['quantity', 'qty', 'units', 'count', 'volume', 'amount', 'sold'];
   const revenueKeywords = ['revenue', 'sales', 'price', 'total', 'amount', 'value', 'income'];
-  const productKeywords = ['product', 'item', 'sku', 'productid', 'product_id', 'itemid', 'item_id'];
+  const productKeywords = ['product', 'item', 'sku', 'productid', 'product_id', 'itemid', 'item_id', 'productname', 'product_name'];
   const regionKeywords = ['region', 'location', 'area', 'territory', 'zone', 'market', 'geography', 'geo'];
   const categoryKeywords = ['category', 'type', 'class', 'segment', 'group', 'department'];
 

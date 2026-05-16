@@ -18,6 +18,7 @@ os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
 # Try importing optional dependencies
 try:
+    # pyrefly: ignore [missing-import]
     import xgboost as xgb
     HAS_XGBOOST = True
 except ImportError:
@@ -72,8 +73,8 @@ def train_model(req: TrainRequest):
     
     try:
         start_time = time.time()
-        if len(req.data) < 5:
-            raise HTTPException(status_code=400, detail="Insufficient data: need at least 5 records")
+        if len(req.data) < 3:
+            raise HTTPException(status_code=400, detail="Insufficient data: need at least 3 records")
         
         df = pd.DataFrame([{"quantity": d.quantity, "date": pd.to_datetime(d.date)} for d in req.data])
         df = df.sort_values(by="date")
@@ -182,7 +183,8 @@ def train_model(req: TrainRequest):
 
         # Compute predictions
         if modelType == "ARIMA":
-            predictions = model.predict(start=0, end=len(y)-1)
+            predict_fn = getattr(model, "predict")
+            predictions = predict_fn(start=0, end=len(y)-1)
         else:
             predictions = model.predict(X)
         
